@@ -2,6 +2,7 @@ package me.zombie_striker.psudocommands;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
@@ -16,7 +17,7 @@ public class Main extends JavaPlugin {
 	@Override
 	public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
 		if (command.getName().equalsIgnoreCase("psudoAs")) {
-			List<String> names = new ArrayList<String>();
+			List<String> names = new ArrayList<>();
 			names.add("Console");
 			for (Player player : Bukkit.getOnlinePlayers())
 				names.add(player.getName());
@@ -33,10 +34,11 @@ public class Main extends JavaPlugin {
 		if ((psudoUUID && sender.hasPermission("psudocommand.psudouuid"))
 				|| (psudo && sender.hasPermission("psudocommand.psudo"))
 				|| (psudoAs && sender.hasPermission("psudocommand.psudoas"))) {
+			boolean atleastOne = false;
 			CommandSender[] senders = new CommandSender[1];
 			if (args.length <= (psudoAs ? 1 : 0)) {
-				sender.sendMessage(ChatColor.GRAY + "[PsudoCommands] Please provide a valid "
-						+ ((psudoAs && args.length == 0) ? "player name" : "command") + ".");
+				//sender.sendMessage(ChatColor.GRAY + "[PsudoCommands] Please provide a valid "
+				//		+ ((psudoAs && args.length == 0) ? "player name" : "command") + ".");
 				return false;
 			}
 			if (psudoAs) {
@@ -50,29 +52,44 @@ public class Main extends JavaPlugin {
 			} else {
 				senders[0] = sender;
 			}
-			if (senders[0] == null) {
-				sender.sendMessage("The sender is null. Choose a valid player or \"Console\"");
+			if (senders == null || senders.length == 0 || senders[0] == null) {
+				sender.sendMessage(ChatColor.RED + "The sender is null. Choose a valid player or \"Console\"");
 				return false;
 			}
 			for (CommandSender issue : senders) {
-				int coordCounter = 0;
 				List<StringBuilder> cmds = new ArrayList<>();
 				cmds.add(new StringBuilder());
-				for (int i = (psudoAs ? 1 : 0); i < args.length; i++) {
+				int step;
+				for (int i = (psudoAs ? 1 : 0); i < args.length; i += step) {
+					step = 1;
 					List<StringBuilder> temps = new ArrayList<>();
 					for (StringBuilder cmd : cmds) {
-						if (args[i].startsWith("~") || args[i].startsWith("^")) {
-							if (!args[i + 1].startsWith("~") && (coordCounter == 0 || coordCounter >= 3)) {
-								cmd.append(issue.getName());
-							} else {
-								if (coordCounter == 0)
-									cmd.append(CommandUtils.getIntRelative(args[i], "x", (Entity) issue));
-								if (coordCounter == 1)
-									cmd.append(CommandUtils.getIntRelative(args[i], "y", (Entity) issue));
-								if (coordCounter == 2)
-									cmd.append(CommandUtils.getIntRelative(args[i], "z", (Entity) issue));
-								coordCounter++;
+						if (CommandUtils.isRelativeCoord(args[i], true)) {
+							step = 3;
+							if (i + 2 >= args.length || !CommandUtils.isRelativeCoord(args[i+1], false)
+									                 || !CommandUtils.isRelativeCoord(args[i+2], false)) {
+								sender.sendMessage(ChatColor.RED +
+									   "Please provide three coordinates after \"" + args[i] + "\"");
+								return false;
 							}
+							Location origin = ((Entity) issue).getLocation();
+							double[] coord;
+							if(args[i].startsWith("^")) {
+								if(!args[i+1].startsWith("^") || !args[i+2].startsWith("^")) {
+									sender.sendMessage(ChatColor.RED + "Cannot mix world & local coordinates " +
+											"(everything must either use ^ or not)");
+									return false;
+								}
+								coord = CommandUtils.getLocalCoord(args[i], args[i+1], args[i+2], origin);
+							} else {
+								if(args[i+1].startsWith("^") || args[i+2].startsWith("^")) {
+									sender.sendMessage(ChatColor.RED + "Cannot mix world & local coordinates " +
+											"(everything must either use ^ or not)");
+									return false;
+								}
+								coord = CommandUtils.getRelativeCoord(args[i], args[i+1], args[i+2], origin);
+							}
+							cmd.append(coord[0]).append(" ").append(coord[1]).append(" ").append(coord[2]);
 						} else if (args[i].startsWith("@")) {
 							Entity[] e = CommandUtils.getTargets(issue, args[i]);
 							if (e == null)
@@ -99,7 +116,11 @@ public class Main extends JavaPlugin {
 							if (e.length == 0 || e[0] == null) {
 								return false;
 							} else {
-								cmd.append(e[0].getCustomName() != null ? e[0].getCustomName() : e[0].getName());
+								if (psudo || psudoAs) {
+									cmd.append(e[0].getCustomName() != null ? e[0].getCustomName() : e[0].getName());
+								} else if (psudoUUID) {
+									cmd.append(e[0].getUniqueId().toString());
+								}
 							}
 						} else {
 							cmd.append(args[i]);
@@ -113,13 +134,12 @@ public class Main extends JavaPlugin {
 						temps.clear();
 					}
 				}
-				boolean atleastOne = false;
 				for (StringBuilder cmd : cmds) {
 					if (Bukkit.dispatchCommand(issue, cmd.toString()))
 						atleastOne = true;
 				}
-				return atleastOne;
 			}
+			return atleastOne;
 		}
 		return false;
 	}

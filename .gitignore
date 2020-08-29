@@ -1,1 +1,17 @@
-/target/
+# Eclipse stuff
+/.classpath
+/.project
+/.settings
+
+# IntelliJ stuff
+/.idea
+
+# maven
+/target
+
+# ant
+/bin
+/dist
+
+# vim
+.*.sw[a-p]

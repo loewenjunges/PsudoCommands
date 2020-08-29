@@ -13,6 +13,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.minecart.CommandMinecart;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Team;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,6 +44,7 @@ public class CommandUtils {
 	 * Currently supports the selectors: [type=] [r=] [rm=] [c=] [w=] [m=]
 	 * [name=] [l=] [lm=] [h=] [hm=] [rx=] [rxm=] [ry=] [rym=] [team=]
 	 * [score_---=] [score_---_min=] [x] [y] [z] [limit=] [x_rotation] [y_rotation]
+	 * [tag=] [scores={}]
 	 * <p>
 	 * All selectors can be inverted.
 	 */
@@ -90,7 +92,7 @@ public class CommandUtils {
 		} else if (arg.startsWith("@a")) {
 			// ents = new Entity[maxEnts];
 			List<Entity> listOfValidEntities = new ArrayList<>();
-			int C = getLimit(arg);
+			int C = getLimit(tags);
 
 			boolean usePlayers = true;
 			for (String tag : tags) {
@@ -130,8 +132,6 @@ public class CommandUtils {
 
 			for (World w : getAcceptedWorldsFullString(loc, arg)) {
 				for (Player e : w.getPlayers()) {
-					if (e == sender)
-						continue;
 					Location temp = loc;
 					if (temp == null)
 						temp = e.getWorld().getSpawnLocation();
@@ -153,14 +153,13 @@ public class CommandUtils {
 			}
 			ents[0] = closest;
 		} else if (arg.startsWith("@e")) {
-			List<Entity> entities = new ArrayList<Entity>();
-			int C = getLimit(arg);
+			List<Entity> entities = new ArrayList<>();
+			int C = getLimit(tags);
 			for (World w : getAcceptedWorldsFullString(loc, arg)) {
 				for (Entity e : w.getEntities()) {
-					if (entities.size() > C)
+					if (entities.size() >= C) {
 						break;
-					if (e == sender)
-						continue;
+					}
 					boolean valid = true;
 					for (String tag : tags) {
 						if (!canBeAccepted(tag, e, loc)) {
@@ -233,50 +232,110 @@ public class CommandUtils {
 	}
 
 	/**
-	 * Returns an integer. Use this to support "~" by providing what it will mean.
-	 * <p>
-	 * E.g. rel="x" when ~ should be turn into the entity's X coord.
-	 * <p>
-	 * Currently supports "x", "y" and "z".
+	 * Returns true if str is a relative, local or world coordinate.
+	 * E.g. "^-2" or "~1.45" or "-2.4"
+	 * If firstCoord is true, str has to be only relative or local, with "~" or "^",
+	 * not only number. Easier to detect the first coordinate of the three.
+	 * If it is false, str can be a double as string.
 	 *
-	 * @param arg The target
-	 * @param rel relative to the X,Y, or Z
-	 * @param e   The entity to check relative to.
-	 * @return the int
+	 * @param str        The tested coordinate
+	 * @param firstCoord Is str the first coordinate of the three.
+	 * @return True if str is a relative coordinate
 	 */
-	public static int getIntRelative(String arg, String rel, Entity e) {
-		int relInt = 0;
-		if (arg.startsWith("~")) {
-			switch (rel.toLowerCase()) {
-				case "x":
-					relInt = e.getLocation().getBlockX();
-					break;
-				case "y":
-					relInt = e.getLocation().getBlockY();
-					break;
-				case "z":
-					relInt = e.getLocation().getBlockZ();
-					break;
-			}
-			return mathIt(arg, relInt);
-		} else if (arg.startsWith("^")) {
-			// TODO: Fix code. The currently just acts the same as ~. This should move the
-			// entity relative to what its looking at.
-
-			switch (rel.toLowerCase()) {
-				case "x":
-					relInt = e.getLocation().getBlockX();
-					break;
-				case "y":
-					relInt = e.getLocation().getBlockY();
-					break;
-				case "z":
-					relInt = e.getLocation().getBlockZ();
-					break;
-			}
-			return mathIt(arg, relInt);
+	public static boolean isRelativeCoord(String str, boolean firstCoord) {
+		// return true if it is a used coordinated like ~3.4 or ^40 or 3.1 ...
+		if(str.startsWith("~") || str.startsWith("^")) {
+			return str.length() == 1 || isDouble(str.substring(1));
 		}
-		return 0;
+		return !firstCoord && isDouble(str);
+	}
+
+	/**
+	 * Parse string coordinates as double coordinates.
+	 * Each string is a number or starts with "~".
+	 * Precondition : x, y and z verify isRelativeCoord.
+	 *
+	 * @param x      First coordinate
+	 * @param y      Second coordinate
+	 * @param z      Third coordinate
+	 * @param origin The origin location for relative.
+	 * @return A size 3 doubles array with x y z coordinates.
+	 */
+	public static double[] getRelativeCoord(String x, String y, String z, Location origin) {
+		// precond : x, y et z are true in isRelativeCoord()
+		// localDir : true if all component are starting with ^
+		double[] res = new double[3];
+		// World coordinates with ~ or values
+		if(x.startsWith("~")) {
+			res[0] = origin.getX();
+			if (x.length() > 1) {
+				res[0] += Double.parseDouble(x.substring(1));
+			}
+		} else {
+			res[0] = Double.parseDouble(x);
+		}
+
+		if(y.startsWith("~")) {
+			res[1] = origin.getY();
+			if (y.length() > 1) {
+				res[1] += Double.parseDouble(y.substring(1));
+			}
+		} else {
+			res[1] = Double.parseDouble(y);
+		}
+
+		if(z.startsWith("~")) {
+			res[2] = origin.getZ();
+			if (z.length() > 1) {
+				res[2] += Double.parseDouble(z.substring(1));
+			}
+		} else {
+			res[2] = Double.parseDouble(z);
+		}
+		return res;
+	}
+
+	/**
+	 * Parse string coordinates as double coordinates.
+	 * Each string starts with "^"
+	 * Precondition : x, y and z verify isRelativeCoord.
+	 *
+	 * @param x      First coordinate
+	 * @param y      Second coordinate
+	 * @param z      Third coordinate
+	 * @param origin The origin location for local.
+	 * @return A size 3 doubles array with x y z coordinates.
+	 */
+	public static double[] getLocalCoord(String x, String y, String z, Location origin) {
+		// precond : x1, y1 et z1 are true in isRelativeCoord()
+		// localDir : true if all component are starting with ^
+		Location arrival = origin.clone();
+		double[] res = new double[3];
+		res[0] = x.length() == 1 ? 0 : Double.parseDouble(x.substring(1));
+		res[1] = y.length() == 1 ? 0 : Double.parseDouble(y.substring(1));
+		res[2] = z.length() == 1 ? 0 : Double.parseDouble(z.substring(1));
+
+		Vector dirX = new Location(arrival.getWorld(), 0, 0, 0, Location.normalizeYaw(arrival.getYaw()-90),
+				arrival.getPitch()).getDirection().normalize();
+		Vector dirY = new Location(arrival.getWorld(), 0, 0, 0, arrival.getYaw(),
+				arrival.getPitch()-90).getDirection().normalize();
+		Vector dirZ = arrival.getDirection().normalize();
+
+		arrival = arrival.add(dirX.multiply(res[0])).add(dirY.multiply(res[1])).add(dirZ.multiply(res[2]));
+
+		res[0] = arrival.getX();
+		res[1] = arrival.getY();
+		res[2] = arrival.getZ();
+		return res;
+	}
+
+	private static boolean isDouble(String str) {
+		try {
+			Double.parseDouble(str);
+		} catch (NumberFormatException e) {
+			return false;
+		}
+		return true;
 	}
 
 	private static boolean canBeAccepted(String arg, Entity e, Location loc) {
@@ -332,6 +391,9 @@ public class CommandUtils {
 			return true;
 		if (hasTag(SelectorType.Z, arg))
 			return true;
+		if (hasTag(SelectorType.C, arg) || hasTag(SelectorType.LIMIT, arg)) {
+			return true; // Limit case is treated before
+		}
 		return false;
 	}
 
@@ -342,75 +404,22 @@ public class CommandUtils {
 		return tags.split(",");
 	}
 
-	private static int mathIt(String args, int relInt) {
-		int total = 0;
-		short mode = 0;
-		String arg = args.replace("~", String.valueOf(relInt));
-		String intString = "";
-		for (int i = 0; i < arg.length(); i++) {
-			if (arg.charAt(i) == '+' || arg.charAt(i) == '-' || arg.charAt(i) == '*' || arg.charAt(i) == '/') {
-				try {
-					switch (mode) {
-						case 0:
-							total = total + Integer.parseInt(intString);
-							break;
-						case 1:
-							total = total - Integer.parseInt(intString);
-							break;
-						case 2:
-							total = total * Integer.parseInt(intString);
-							break;
-						case 3:
-							total = total / Integer.parseInt(intString);
-							break;
-					}
-					mode = (short) ((arg.charAt(i) == '+') ? 0
-							: ((arg.charAt(i) == '-') ? 1
-							: ((arg.charAt(i) == '*') ? 2 : ((arg.charAt(i) == '/') ? 3 : -1))));
-				} catch (Exception e) {
-					Bukkit.getLogger().severe("There has been an issue with a plugin using the CommandUtils class!");
+	private static int getLimit(String arg) {
+		if (hasTag(SelectorType.LIMIT, arg) || hasTag(SelectorType.C, arg))
+			for (String s : getTags(arg)) {
+				if (hasTag(SelectorType.LIMIT, s) || hasTag(SelectorType.C, arg)) {
+					return getInt(s);
 				}
-
-			} else if (args.length() == i || arg.charAt(i) == ' ' || arg.charAt(i) == ',' || arg.charAt(i) == ']') {
-				try {
-					switch (mode) {
-						case 0:
-							total = total + Integer.parseInt(intString);
-							break;
-						case 1:
-							total = total - Integer.parseInt(intString);
-							break;
-						case 2:
-							total = total * Integer.parseInt(intString);
-							break;
-						case 3:
-							total = total / Integer.parseInt(intString);
-							break;
-					}
-				} catch (Exception e) {
-					Bukkit.getLogger().severe("There has been an issue with a plugin using the CommandUtils class!");
-				}
-				break;
-			} else {
-				intString += arg.charAt(i);
 			}
-		}
-		return total;
+		return Integer.MAX_VALUE;
 	}
 
-	private static int getLimit(String arg) {
-		if (hasTag(SelectorType.LIMIT, arg))
-			for (String s : getTags(arg)) {
-				if (hasTag(SelectorType.LIMIT, s)) {
-					return getInt(s);
-				}
+	private static int getLimit(String[] tags) {
+		for (String s : tags) {
+			if (hasTag(SelectorType.LIMIT, s) || hasTag(SelectorType.C, s)) {
+				return getInt(s);
 			}
-		if (hasTag(SelectorType.C, arg))
-			for (String s : getTags(arg)) {
-				if (hasTag(SelectorType.C, s)) {
-					return getInt(s);
-				}
-			}
+		}
 		return Integer.MAX_VALUE;
 	}
 
@@ -476,7 +485,7 @@ public class CommandUtils {
 			}
 		}
 		if (string == null) {
-			List<World> worlds = new ArrayList<World>();
+			List<World> worlds = new ArrayList<>();
 			if (loc == null || loc.getWorld() == null) {
 				worlds.addAll(Bukkit.getWorlds());
 			} else {
@@ -488,7 +497,7 @@ public class CommandUtils {
 	}
 
 	private static List<World> getAcceptedWorlds(String string) {
-		List<World> worlds = new ArrayList<World>(Bukkit.getWorlds());
+		List<World> worlds = new ArrayList<>(Bukkit.getWorlds());
 		if (isInverted(string)) {
 			worlds.remove(getW(string));
 		} else {
@@ -511,13 +520,12 @@ public class CommandUtils {
 	}
 
 	private static boolean isWithinPitch(String arg, Entity e) {
-		float pitch = getValueAsFloat(arg);
-		return isWithinDoubleValue(isInverted(arg), arg, e.getLocation().getPitch());
+		return isWithinDoubleValue(isInverted(arg), arg.split("=")[1], e.getLocation().getPitch());
 	}
 
 	private static boolean isWithinYaw(String arg, Entity e) {
-		float pitch = getValueAsFloat(arg);
-		return isWithinDoubleValue(isInverted(arg), arg, e.getLocation().getYaw());
+		String[] s = arg.split("=");
+		return isWithinDoubleValue(isInverted(arg), arg.split("=")[1], e.getLocation().getYaw());
 	}
 
 	private static boolean isWithinDistance(String arg, Location start, Entity e) {
@@ -565,11 +573,10 @@ public class CommandUtils {
 	}
 
 	private static boolean isScore(String arg, Entity e) {
-		if (!(e instanceof Player))
-			return false;
 		for (Objective o : Bukkit.getScoreboardManager().getMainScoreboard().getObjectives()) {
 			if (o.getName().equalsIgnoreCase(getScoreName(arg))) {
-				if ((o.getScore(((Player) e).getName()).getScore() <= getValueAsInteger(arg) != isInverted(arg)))
+				int score = o.getScore(e instanceof Player ? e.getName() : e.getUniqueId().toString()).getScore();
+				if (score <= getValueAsInteger(arg) != isInverted(arg))
 					return true;
 			}
 		}
@@ -577,8 +584,6 @@ public class CommandUtils {
 	}
 
 	private static boolean isScoreWithin(String arg, Entity e) {
-		if (!(e instanceof Player))
-			return false;
 		String[] scores = arg.split("\\{")[1].split("\\}")[0].split(",");
 		for (int i = 0; i < scores.length; i++) {
 			String[] s = scores[i].split("=");
@@ -586,29 +591,27 @@ public class CommandUtils {
 
 			for (Objective o : Bukkit.getScoreboardManager().getMainScoreboard().getObjectives()) {
 				if (o.getName().equalsIgnoreCase(name)) {
-					if (!isWithinDoubleValue(isInverted(arg), s[1], o.getScore(e.getName()).getScore()))
+					int score = o.getScore(e instanceof Player ? e.getName() : e.getUniqueId().toString()).getScore();
+					if (!isWithinDoubleValue(isInverted(arg), s[1], score)) {
 						return false;
+					}
 				}
 			}
 		}
 		return true;
-
 	}
 
 	private static boolean isHasTags(String arg, Entity e) {
-		if (!(e instanceof Player))
-			return false;
 		return isInverted(arg) != e.getScoreboardTags().contains(getString(arg));
-
 	}
 
 	private static boolean isScoreMin(String arg, Entity e) {
-		if (!(e instanceof Player))
-			return false;
 		for (Objective o : Bukkit.getScoreboardManager().getMainScoreboard().getObjectives()) {
 			if (o.getName().equalsIgnoreCase(getScoreMinName(arg))) {
-				if ((o.getScore(((Player) e).getName()).getScore() >= getValueAsInteger(arg) != isInverted(arg)))
+				int score = o.getScore(e instanceof Player ? e.getName() : e.getUniqueId().toString()).getScore();
+				if (score >= getValueAsInteger(arg) != isInverted(arg)) {
 					return true;
+				}
 			}
 		}
 		return false;
@@ -711,8 +714,7 @@ public class CommandUtils {
 	}
 
 	private static int getInt(String arg) {
-		int mult = Integer.parseInt(arg.split("=")[1]);
-		return mult;
+		return Integer.parseInt(arg.split("=")[1]);
 	}
 
 	public static String getString(String arg) {
@@ -742,7 +744,7 @@ public class CommandUtils {
 			if (temp.length > 1 && !temp[1].isEmpty()) {
 				max = Double.parseDouble(temp[1]);
 			}
-			return (value <= max * max && min * min <= value) != inverted;
+			return (value <= max && min <= value) != inverted;
 		} else {
 			double mult = Double.parseDouble(arg);
 			return (value == mult) != inverted;

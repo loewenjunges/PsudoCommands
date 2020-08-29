@@ -1,3 +1,13 @@
+1.0.15
+    Added support for local coordinates ^
+    Fixed /psudoUUID that wasn't fully ok on github (but the 1.0.14 jar was ok)
+    Fixed /psudoas with more than one entity as sender
+    Fixed relative coordinates
+    Fixed [limit=] and [c=]
+    Fixed [tag=] for non-player entities
+    Fixed [score_---=] [score_---_min=] [scores={}] for non-player entities
+    Fixed [x_rotation=] and [y_rotation=]
+
 1.0.14
     Added /psudoUUID for getting the uuid of entities
 
@@ -51,7 +61,6 @@
 
 1.0.4
 	Fixed issue where command blocks are not centered.
-	TODO: Make ^ work correctly and not use ~ code
 
 1.0.3
 	Fixed issue where commands would reference the instance of the player, not the player's name
