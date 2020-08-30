@@ -62,13 +62,15 @@ public class CommandUtils {
 		String[] tags = getTags(arg);
 
 		// prefab fix
-		for (String s : tags) {
-			if (hasTag(SelectorType.X, s)) {
-				loc.setX(getInt(s));
-			} else if (hasTag(SelectorType.Y, s)) {
-				loc.setY(getInt(s));
-			} else if (hasTag(SelectorType.Z, s)) {
-				loc.setZ(getInt(s));
+		if (loc != null) {
+			for (String s : tags) {
+				if (hasTag(SelectorType.X, s)) {
+					loc.setX(getValueAsFloat(s));
+				} else if (hasTag(SelectorType.Y, s)) {
+					loc.setY(getValueAsFloat(s));
+				} else if (hasTag(SelectorType.Z, s)) {
+					loc.setZ(getValueAsFloat(s));
+				}
 			}
 		}
 
@@ -392,7 +394,7 @@ public class CommandUtils {
 		if (hasTag(SelectorType.Z, arg))
 			return true;
 		if (hasTag(SelectorType.C, arg) || hasTag(SelectorType.LIMIT, arg)) {
-			return true; // Limit case is treated before
+			return true; // Limit case is treated before like X, Y and Z
 		}
 		return false;
 	}
@@ -404,20 +406,10 @@ public class CommandUtils {
 		return tags.split(",");
 	}
 
-	private static int getLimit(String arg) {
-		if (hasTag(SelectorType.LIMIT, arg) || hasTag(SelectorType.C, arg))
-			for (String s : getTags(arg)) {
-				if (hasTag(SelectorType.LIMIT, s) || hasTag(SelectorType.C, arg)) {
-					return getInt(s);
-				}
-			}
-		return Integer.MAX_VALUE;
-	}
-
 	private static int getLimit(String[] tags) {
 		for (String s : tags) {
 			if (hasTag(SelectorType.LIMIT, s) || hasTag(SelectorType.C, s)) {
-				return getInt(s);
+				return getValueAsInteger(s);
 			}
 		}
 		return Integer.MAX_VALUE;
@@ -711,10 +703,6 @@ public class CommandUtils {
 
 	private static boolean isInverted(String arg) {
 		return arg.toLowerCase().split("!").length != 1;
-	}
-
-	private static int getInt(String arg) {
-		return Integer.parseInt(arg.split("=")[1]);
 	}
 
 	public static String getString(String arg) {

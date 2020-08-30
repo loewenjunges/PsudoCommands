@@ -37,8 +37,8 @@ public class Main extends JavaPlugin {
 			boolean atleastOne = false;
 			CommandSender[] senders = new CommandSender[1];
 			if (args.length <= (psudoAs ? 1 : 0)) {
-				//sender.sendMessage(ChatColor.GRAY + "[PsudoCommands] Please provide a valid "
-				//		+ ((psudoAs && args.length == 0) ? "player name" : "command") + ".");
+				sender.sendMessage(ChatColor.GRAY + "[PsudoCommands] Please provide a valid "
+						+ ((psudoAs && args.length == 0) ? "player name" : "command") + ".");
 				return false;
 			}
 			if (psudoAs) {
@@ -64,6 +64,7 @@ public class Main extends JavaPlugin {
 					step = 1;
 					List<StringBuilder> temps = new ArrayList<>();
 					for (StringBuilder cmd : cmds) {
+						// Set of 3 relative, world or local coordinates. The first one has to be relative or local ~ ^
 						if (CommandUtils.isRelativeCoord(args[i], true)) {
 							step = 3;
 							if (i + 2 >= args.length || !CommandUtils.isRelativeCoord(args[i+1], false)
@@ -90,6 +91,7 @@ public class Main extends JavaPlugin {
 								coord = CommandUtils.getRelativeCoord(args[i], args[i+1], args[i+2], origin);
 							}
 							cmd.append(coord[0]).append(" ").append(coord[1]).append(" ").append(coord[2]);
+						// Targets from the selector
 						} else if (args[i].startsWith("@")) {
 							Entity[] e = CommandUtils.getTargets(issue, args[i]);
 							if (e == null)
