@@ -43,8 +43,13 @@ public class CommandUtils {
 	 * <p>
 	 * Currently supports the selectors: [type=] [r=] [rm=] [c=] [w=] [m=]
 	 * [name=] [l=] [lm=] [h=] [hm=] [rx=] [rxm=] [ry=] [rym=] [team=]
-	 * [score_---=] [score_---_min=] [x] [y] [z] [limit=] [x_rotation] [y_rotation]
-	 * [tag=] [scores={}]
+	 * [score_---=] [score_---_min=] [x] [y] [z] [dx] [dy] [dz] [gamemode=]
+	 * [limit=] [x_rotation] [y_rotation] [tag=] [scores={}] [level=]
+	 *
+	 * Note : m, r rm, rx rxm, ry rym, l lm, score_--- score_---_min are old
+	 * format from 1.12-. They are respectively replaced by gamemode,
+	 * distance, x_rotation, y_rotation, level, scores={}, in vanilla 1.13+
+	 * Try to use newer tags if you run on 1.13+
 	 * <p>
 	 * All selectors can be inverted.
 	 */
@@ -55,7 +60,7 @@ public class CommandUtils {
 			loc = ((Player) sender).getLocation();
 		} else if (sender instanceof BlockCommandSender) {
 			// Center of block.
-			loc = ((BlockCommandSender) sender).getBlock().getLocation().add(0.5, 0, 0.5);
+			loc = ((BlockCommandSender) sender).getBlock().getLocation().add(.5, 0, .5);
 		} else if (sender instanceof CommandMinecart) {
 			loc = ((CommandMinecart) sender).getLocation();
 		}
@@ -65,11 +70,11 @@ public class CommandUtils {
 		if (loc != null) {
 			for (String s : tags) {
 				if (hasTag(SelectorType.X, s)) {
-					loc.setX(getValueAsFloat(s));
+					loc.setX(s.contains(".") ? getValueAsFloat(s) : getValueAsInteger(s));
 				} else if (hasTag(SelectorType.Y, s)) {
-					loc.setY(getValueAsFloat(s));
+					loc.setY(s.contains(".") ? getValueAsFloat(s) : getValueAsInteger(s));
 				} else if (hasTag(SelectorType.Z, s)) {
-					loc.setZ(getValueAsFloat(s));
+					loc.setZ(s.contains(".") ? getValueAsFloat(s) : getValueAsInteger(s));
 				}
 			}
 		}
@@ -355,7 +360,7 @@ public class CommandUtils {
 			return true;
 		if (hasTag(SelectorType.SCORE_MIN, arg) && isScoreMin(arg, e))
 			return true;
-		if (hasTag(SelectorType.SCORE_13, arg) && isScoreWithin(arg, e))
+		if (hasTag(SelectorType.SCORES, arg) && isScoreWithin(arg, e))
 			return true;
 		if (hasTag(SelectorType.DISTANCE, arg) && isWithinDistance(arg, loc, e))
 			return true;
@@ -379,7 +384,9 @@ public class CommandUtils {
 			return true;
 		if (hasTag(SelectorType.L, arg) && isL(arg, e))
 			return true;
-		if (hasTag(SelectorType.m, arg) && isM(arg, e))
+		if (hasTag(SelectorType.M, arg) && isM(arg, e))
+			return true;
+		if (hasTag(SelectorType.GAMEMODE, arg) && isM(arg, e))
 			return true;
 		if (hasTag(SelectorType.H, arg) && isH(arg, e))
 			return true;
@@ -392,6 +399,15 @@ public class CommandUtils {
 		if (hasTag(SelectorType.Y, arg))
 			return true;
 		if (hasTag(SelectorType.Z, arg))
+			return true;
+		if (hasTag(SelectorType.DX, arg) && e.getLocation().getWorld() == loc.getWorld()
+				&& isDRange(arg, e.getLocation().getX(), loc.getX()))
+			return true;
+		if (hasTag(SelectorType.DY, arg) && e.getLocation().getWorld() == loc.getWorld()
+				&& isDRange(arg, e.getLocation().getY(), loc.getY()))
+			return true;
+		if (hasTag(SelectorType.DZ, arg) && e.getLocation().getWorld() == loc.getWorld()
+				&& isDRange(arg, e.getLocation().getZ(), loc.getZ()))
 			return true;
 		if (hasTag(SelectorType.C, arg) || hasTag(SelectorType.LIMIT, arg)) {
 			return true; // Limit case is treated before like X, Y and Z
@@ -497,6 +513,10 @@ public class CommandUtils {
 			worlds.add(getW(string));
 		}
 		return worlds;
+	}
+
+	private static boolean isDRange(String arg, double value, double base) {
+		return value > (base - .35) && value < (base + Double.parseDouble(arg.split("=")[1]) + 1.35);
 	}
 
 	private static boolean isTeam(String arg, Entity e) {
@@ -744,10 +764,16 @@ public class CommandUtils {
 	}
 
 	enum SelectorType {
-		LEVEL("level="), DISTANCE("distance="), TYPE("type="), NAME("name="), TEAM("team="), LMax("lm="), L(
-				"l="), World("w="), m("m="), C("c="), HM("hm="), H("h="), RM("rm="), RYM("rym="), RX("rx="), SCORE_FULL(
-				"score="), SCORE_MIN("score_min"), SCORE_13(
-				"scores="), R("r="), RXM("rxm="), RY("ry="), TAG("tag="), X("x="), Y("y="), Z("z="), LIMIT("limit="), Y_ROTATION("y_rotation"), X_ROTATION("x_rotation");
+		LEVEL("level="), LMax("lm="), L("l="),
+		DISTANCE("distance="), RM("rm="), R("r="),
+		X_ROTATION("x_rotation"), RYM("rym="), RY("ry="),
+		Y_ROTATION("y_rotation"), RXM("rxm="), RX("rx="),
+		LIMIT("limit="), C("c="),
+		SCORES("scores="), SCORE_FULL("score="), SCORE_MIN("score_min"),
+		GAMEMODE("gamemode="), M("m="),
+		X("x="), Y("y="), Z("z="), DX("dx="), DY("dy="), DZ("dz="),
+		TYPE("type="), NAME("name="), TEAM("team="), World("w="),
+		HM("hm="), H("h="), TAG("tag=");
 		String name;
 
 		SelectorType(String s) {
