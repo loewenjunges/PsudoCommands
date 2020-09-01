@@ -269,10 +269,7 @@ public class CommandUtils {
 	 * @return The arrival location
 	 */
 	public static Location getRelativeCoord(String x, String y, String z, Location origin) {
-		// precond : x, y et z are true in isRelativeCoord()
-		// localDir : true if all component are starting with ^
 		Location arrival = origin.clone();
-		// World coordinates with ~ or values
 		if(x.startsWith("~")) {
 			arrival.setX(arrival.getX() + getCoordinate(x));
 		} else {
@@ -305,8 +302,6 @@ public class CommandUtils {
 	 * @return The arrival location
 	 */
 	public static Location getLocalCoord(String x, String y, String z, Location origin) {
-		// precond : x1, y1 et z1 are true in isRelativeCoord()
-		// localDir : true if all component are starting with ^
 		Location arrival = origin.clone();
 
 		Vector dirX = new Location(arrival.getWorld(), 0, 0, 0, Location.normalizeYaw(arrival.getYaw()-90),
