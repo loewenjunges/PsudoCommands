@@ -74,23 +74,23 @@ public class Main extends JavaPlugin {
 								return false;
 							}
 							Location origin = ((Entity) issue).getLocation();
-							double[] coord;
+							Location arv;
 							if(args[i].startsWith("^")) {
 								if(!args[i+1].startsWith("^") || !args[i+2].startsWith("^")) {
 									sender.sendMessage(ChatColor.RED + "Cannot mix world & local coordinates " +
 											"(everything must either use ^ or not)");
 									return false;
 								}
-								coord = CommandUtils.getLocalCoord(args[i], args[i+1], args[i+2], origin);
+								arv = CommandUtils.getLocalCoord(args[i], args[i+1], args[i+2], origin);
 							} else {
 								if(args[i+1].startsWith("^") || args[i+2].startsWith("^")) {
 									sender.sendMessage(ChatColor.RED + "Cannot mix world & local coordinates " +
 											"(everything must either use ^ or not)");
 									return false;
 								}
-								coord = CommandUtils.getRelativeCoord(args[i], args[i+1], args[i+2], origin);
+								arv = CommandUtils.getRelativeCoord(args[i], args[i+1], args[i+2], origin);
 							}
-							cmd.append(coord[0]).append(" ").append(coord[1]).append(" ").append(coord[2]);
+							cmd.append(arv.getX()).append(" ").append(arv.getY()).append(" ").append(arv.getZ());
 						// Targets from the selector
 						} else if (args[i].startsWith("@")) {
 							Entity[] e = CommandUtils.getTargets(issue, args[i]);

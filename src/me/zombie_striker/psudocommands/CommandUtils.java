@@ -233,7 +233,7 @@ public class CommandUtils {
 	 */
 	public static Entity getTarget(CommandSender sender, String arg) {
 		Entity[] e = getTargets(sender, arg);
-		if (e.length == 0)
+		if (e == null || e.length == 0)
 			return null;
 		return e[0];
 	}
@@ -265,62 +265,49 @@ public class CommandUtils {
 	 * @param x      First coordinate
 	 * @param y      Second coordinate
 	 * @param z      Third coordinate
-	 * @param origin The origin location for relative.
-	 * @return A size 3 doubles array with x y z coordinates.
+	 * @param origin The origin location for relative
+	 * @return The arrival location
 	 */
-	public static double[] getRelativeCoord(String x, String y, String z, Location origin) {
+	public static Location getRelativeCoord(String x, String y, String z, Location origin) {
 		// precond : x, y et z are true in isRelativeCoord()
 		// localDir : true if all component are starting with ^
-		double[] res = new double[3];
+		Location arrival = origin.clone();
 		// World coordinates with ~ or values
 		if(x.startsWith("~")) {
-			res[0] = origin.getX();
-			if (x.length() > 1) {
-				res[0] += Double.parseDouble(x.substring(1));
-			}
+			arrival.setX(arrival.getX() + getCoordinate(x));
 		} else {
-			res[0] = Double.parseDouble(x);
+			arrival.setX(getCoordinate(x));
 		}
 
 		if(y.startsWith("~")) {
-			res[1] = origin.getY();
-			if (y.length() > 1) {
-				res[1] += Double.parseDouble(y.substring(1));
-			}
+			arrival.setY(arrival.getY() + getCoordinate(y));
 		} else {
-			res[1] = Double.parseDouble(y);
+			arrival.setY(getCoordinate(y));
 		}
 
 		if(z.startsWith("~")) {
-			res[2] = origin.getZ();
-			if (z.length() > 1) {
-				res[2] += Double.parseDouble(z.substring(1));
-			}
+			arrival.setZ(arrival.getZ() + getCoordinate(z));
 		} else {
-			res[2] = Double.parseDouble(z);
+			arrival.setZ(getCoordinate(z));
 		}
-		return res;
+		return arrival;
 	}
 
 	/**
 	 * Parse string coordinates as double coordinates.
-	 * Each string starts with "^"
+	 * Each string starts with "^".
 	 * Precondition : x, y and z verify isRelativeCoord.
 	 *
 	 * @param x      First coordinate
 	 * @param y      Second coordinate
 	 * @param z      Third coordinate
-	 * @param origin The origin location for local.
-	 * @return A size 3 doubles array with x y z coordinates.
+	 * @param origin The origin location for local
+	 * @return The arrival location
 	 */
-	public static double[] getLocalCoord(String x, String y, String z, Location origin) {
+	public static Location getLocalCoord(String x, String y, String z, Location origin) {
 		// precond : x1, y1 et z1 are true in isRelativeCoord()
 		// localDir : true if all component are starting with ^
 		Location arrival = origin.clone();
-		double[] res = new double[3];
-		res[0] = x.length() == 1 ? 0 : Double.parseDouble(x.substring(1));
-		res[1] = y.length() == 1 ? 0 : Double.parseDouble(y.substring(1));
-		res[2] = z.length() == 1 ? 0 : Double.parseDouble(z.substring(1));
 
 		Vector dirX = new Location(arrival.getWorld(), 0, 0, 0, Location.normalizeYaw(arrival.getYaw()-90),
 				arrival.getPitch()).getDirection().normalize();
@@ -328,12 +315,14 @@ public class CommandUtils {
 				arrival.getPitch()-90).getDirection().normalize();
 		Vector dirZ = arrival.getDirection().normalize();
 
-		arrival = arrival.add(dirX.multiply(res[0])).add(dirY.multiply(res[1])).add(dirZ.multiply(res[2]));
+		return arrival.add(dirX.multiply(getCoordinate(x)))
+				      .add(dirY.multiply(getCoordinate(y)))
+				      .add(dirZ.multiply(getCoordinate(z)));
+	}
 
-		res[0] = arrival.getX();
-		res[1] = arrival.getY();
-		res[2] = arrival.getZ();
-		return res;
+	private static double getCoordinate(String c) {
+		// c is like ^3 or ~-1.2 or 489.1
+		return c.length() == 1 ? 0 : Double.parseDouble(c.substring(1));
 	}
 
 	private static boolean isDouble(String str) {
@@ -346,73 +335,72 @@ public class CommandUtils {
 	}
 
 	private static boolean canBeAccepted(String arg, Entity e, Location loc) {
-		if (hasTag(SelectorType.X_ROTATION, arg) && isWithinYaw(arg, e))
-			return true;
-		if (hasTag(SelectorType.Y_ROTATION, arg) && isWithinPitch(arg, e))
-			return true;
-		if (hasTag(SelectorType.TYPE, arg) && isType(arg, e))
-			return true;
-		if (hasTag(SelectorType.NAME, arg) && isName(arg, e))
-			return true;
-		if (hasTag(SelectorType.TEAM, arg) && isTeam(arg, e))
-			return true;
-		if (hasTag(SelectorType.SCORE_FULL, arg) && isScore(arg, e))
-			return true;
-		if (hasTag(SelectorType.SCORE_MIN, arg) && isScoreMin(arg, e))
-			return true;
-		if (hasTag(SelectorType.SCORES, arg) && isScoreWithin(arg, e))
-			return true;
-		if (hasTag(SelectorType.DISTANCE, arg) && isWithinDistance(arg, loc, e))
-			return true;
-		if (hasTag(SelectorType.LEVEL, arg) && isWithinLevel(arg, e))
-			return true;
-		if (hasTag(SelectorType.TAG, arg) && isHasTags(arg, e))
-			return true;
-		if (hasTag(SelectorType.RYM, arg) && isRYM(arg, e))
-			return true;
-		if (hasTag(SelectorType.RXM, arg) && isRXM(arg, e))
-			return true;
-		if (hasTag(SelectorType.HM, arg) && isHM(arg, e))
-			return true;
-		if (hasTag(SelectorType.RY, arg) && isRY(arg, e))
-			return true;
-		if (hasTag(SelectorType.RX, arg) && isRX(arg, e))
-			return true;
-		if (hasTag(SelectorType.RM, arg) && isRM(arg, loc, e))
-			return true;
-		if (hasTag(SelectorType.LMax, arg) && isLM(arg, e))
-			return true;
-		if (hasTag(SelectorType.L, arg) && isL(arg, e))
-			return true;
-		if (hasTag(SelectorType.M, arg) && isM(arg, e))
-			return true;
-		if (hasTag(SelectorType.GAMEMODE, arg) && isM(arg, e))
-			return true;
-		if (hasTag(SelectorType.H, arg) && isH(arg, e))
-			return true;
-		if (hasTag(SelectorType.World, arg) && isW(arg, loc, e))
-			return true;
-		if (hasTag(SelectorType.R, arg) && isR(arg, loc, e))
-			return true;
-		if (hasTag(SelectorType.X, arg))
-			return true;
-		if (hasTag(SelectorType.Y, arg))
-			return true;
-		if (hasTag(SelectorType.Z, arg))
-			return true;
-		if (hasTag(SelectorType.DX, arg) && e.getLocation().getWorld() == loc.getWorld()
-				&& isDRange(arg, e.getLocation().getX(), loc.getX()))
-			return true;
-		if (hasTag(SelectorType.DY, arg) && e.getLocation().getWorld() == loc.getWorld()
-				&& isDRange(arg, e.getLocation().getY(), loc.getY()))
-			return true;
-		if (hasTag(SelectorType.DZ, arg) && e.getLocation().getWorld() == loc.getWorld()
-				&& isDRange(arg, e.getLocation().getZ(), loc.getZ()))
-			return true;
-		if (hasTag(SelectorType.C, arg) || hasTag(SelectorType.LIMIT, arg)) {
-			return true; // Limit case is treated before like X, Y and Z
+		SelectorType type = getTag(arg);
+		if (type == null)
+			return false;
+		switch (type) {
+			case X:
+			case Y:
+			case Z:
+			case LIMIT:
+			case C:
+				return true;
+			case DISTANCE:
+				return isWithinDistance(arg, loc, e);
+			case TYPE:
+				return isType(arg, e);
+			case TAG:
+				return isHasTags(arg, e);
+			case NAME:
+				return isName(arg, e);
+			case TEAM:
+				return isTeam(arg, e);
+			case X_ROTATION:
+				return isWithinYaw(arg, e);
+			case Y_ROTATION:
+				return isWithinPitch(arg, e);
+			case DX:
+				return e.getLocation().getWorld() == loc.getWorld() && isDRange(arg, e.getLocation().getX(), loc.getX());
+			case DY:
+				return e.getLocation().getWorld() == loc.getWorld() && isDRange(arg, e.getLocation().getY(), loc.getY());
+			case DZ:
+				return e.getLocation().getWorld() == loc.getWorld() && isDRange(arg, e.getLocation().getZ(), loc.getZ());
+			case SCORES:
+				return isScoreWithin(arg, e);
+			case SCORE_FULL:
+				return isScore(arg, e);
+			case SCORE_MIN:
+				return isScoreMin(arg, e);
+			case R:
+				return isR(arg, loc, e);
+			case RM:
+				return isRM(arg, loc, e);
+			case RX:
+				return isRX(arg, e);
+			case RXM:
+				return isRXM(arg, e);
+			case RY:
+				return isRY(arg, e);
+			case RYM:
+				return isRYM(arg, e);
+			case LEVEL:
+				return isWithinLevel(arg, e);
+			case L:
+				return isL(arg, e);
+			case LMax:
+				return isLM(arg, e);
+			case GAMEMODE:
+			case M:
+				return isM(arg, e);
+			case H:
+				return isH(arg, e);
+			case HM:
+				return isHM(arg, e);
+			case World:
+				return isW(arg);
+			default:
+				return false;
 		}
-		return false;
 	}
 
 	private static String[] getTags(String arg) {
@@ -524,7 +512,7 @@ public class CommandUtils {
 			return false;
 		for (Team t : Bukkit.getScoreboardManager().getMainScoreboard().getTeams()) {
 			if ((t.getName().equalsIgnoreCase(getTeam(arg)) != isInverted(arg))) {
-				if ((t.getEntries().contains(((Player) e).getName()) != isInverted(arg)))
+				if ((t.getEntries().contains(e.getName()) != isInverted(arg)))
 					return true;
 			}
 		}
@@ -536,7 +524,6 @@ public class CommandUtils {
 	}
 
 	private static boolean isWithinYaw(String arg, Entity e) {
-		String[] s = arg.split("=");
 		return isWithinDoubleValue(isInverted(arg), arg.split("=")[1], e.getLocation().getYaw());
 	}
 
@@ -688,18 +675,17 @@ public class CommandUtils {
 		if (getM(arg) == null)
 			return true;
 		if (e instanceof HumanEntity) {
-			if ((isInverted(arg) != (getM(arg) == ((HumanEntity) e).getGameMode())))
-				return true;
+			return isInverted(arg) != (getM(arg) == ((HumanEntity) e).getGameMode());
 		}
 		return false;
 	}
 
-	private static boolean isW(String arg, Location loc, Entity e) {
-		if (getW(arg) == null) {
+	private static boolean isW(String arg) {
+		World w = getW(arg);
+		if (w == null) {
 			return true;
-		} else if ((isInverted(arg) != getAcceptedWorlds(arg).contains(getW(arg))))
-			return true;
-		return false;
+		}
+		return isInverted(arg) != getAcceptedWorlds(arg).contains(w);
 	}
 
 	private static boolean isName(String arg, Entity e) {
@@ -707,7 +693,7 @@ public class CommandUtils {
 			return true;
 		if ((isInverted(arg) != (e.getCustomName() != null) && isInverted(arg) != (getName(arg)
 				.equals(e.getCustomName().replace(" ", "_"))
-				|| (e instanceof Player && ((Player) e).getName().replace(" ", "_").equalsIgnoreCase(getName(arg))))))
+				|| (e instanceof Player && e.getName().replace(" ", "_").equalsIgnoreCase(getName(arg))))))
 			return true;
 		return false;
 	}
@@ -761,6 +747,16 @@ public class CommandUtils {
 
 	private static boolean hasTag(SelectorType type, String arg) {
 		return arg.toLowerCase().startsWith(type.getName());
+	}
+
+	private static SelectorType getTag(String arg) {
+		String name = arg.toLowerCase().split("=")[0] + "=";
+		for (SelectorType type : SelectorType.values()) {
+			if (type.getName().equals(name)) {
+				return type;
+			}
+		}
+		return null;
 	}
 
 	enum SelectorType {
