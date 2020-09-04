@@ -1,4 +1,5 @@
 1.0.17
+    Added an error message if the sender has no permission
     Optimized code
 
 1.0.16

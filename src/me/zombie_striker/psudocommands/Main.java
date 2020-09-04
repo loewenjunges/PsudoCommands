@@ -143,6 +143,7 @@ public class Main extends JavaPlugin {
 			}
 			return atleastOne;
 		}
+		sender.sendMessage(ChatColor.GRAY + "[PsudoCommands] You don't have permission to use this command.");
 		return false;
 	}
 }
