@@ -5,8 +5,10 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.PluginCommandYamlParser;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
@@ -16,14 +18,50 @@ public class Main extends JavaPlugin {
 
 	@Override
 	public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-		if (command.getName().equalsIgnoreCase("psudoAs")) {
-			List<String> names = new ArrayList<>();
-			names.add("Console");
-			for (Player player : Bukkit.getOnlinePlayers())
-				names.add(player.getName());
-			return names;
+		boolean psudoAs = command.getName().equalsIgnoreCase("psudoas");
+		boolean psudoUUID = command.getName().equals("psudoUUID");
+		boolean psudo = command.getName().equals("psudo");
+		if ((psudoUUID && sender.hasPermission("psudocommand.psudouuid"))
+				|| (psudo && sender.hasPermission("psudocommand.psudo"))
+				|| (psudoAs && sender.hasPermission("psudocommand.psudoas"))) {
+			List<String> completion = new ArrayList<>();
+			if (psudoAs && args.length == 1) {
+				complete(completion, "Console", args[0]);
+				for (Player player : Bukkit.getOnlinePlayers()) {
+					complete(completion, player.getName(), args[0]);
+				}
+			} else {
+				int remove = psudoAs ? 2 : 1;
+				if (args.length == remove) {
+					// Add all loaded command
+					String lastArg = args[remove-1];
+					for(Plugin plugin : Bukkit.getPluginManager().getPlugins()){
+						for(Command c : PluginCommandYamlParser.parse(plugin)) {
+							for (String alias_ : c.getAliases()) {
+								complete(completion, alias_, lastArg);
+							}
+							complete(completion, c.getName(), lastArg);
+						}
+					}
+				} else if (args.length > remove) {
+					// remove first args and copy the other to get the tabComplete (like writing command without psudo)
+					String[] newArgs = new String[args.length-remove];
+					System.arraycopy(args, remove, newArgs, 0, args.length - remove);
+					Command newCommand = Bukkit.getServer().getPluginCommand(args[remove-1]);
+					if (newCommand != null) {
+						completion = newCommand.tabComplete(sender, args[remove-1], newArgs);
+					}
+				}
+			}
+			return completion;
 		}
 		return super.onTabComplete(sender, command, alias, args);
+	}
+
+	private static void complete(List<String> completion, String target, String arg) {
+		if(target.toLowerCase().startsWith(arg.toLowerCase())) {
+			completion.add(target);
+		}
 	}
 
 	@Override

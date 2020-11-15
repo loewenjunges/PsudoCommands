@@ -1,3 +1,6 @@
+1.0.18
+    Added TabCompleter for the list of available loaded commands and their arguments.
+
 1.0.17
     Added an error message if the sender has no permission
     Optimized code
