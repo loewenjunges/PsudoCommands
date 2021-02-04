@@ -416,7 +416,7 @@ public class CommandUtils {
 
 	private static String getType(String arg) {
 		if (hasTag(SelectorType.TYPE, arg))
-			return arg.toLowerCase().split("=")[1].replace("!", "");
+			return arg.toLowerCase().split("=")[1].replace("!", "").replace("minecraft:", "");
 		return "Player";
 	}
 

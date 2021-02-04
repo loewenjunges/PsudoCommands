@@ -1,3 +1,6 @@
+1.0.19
+    Fixed [type=] if the given type contains 'minecraft:'
+
 1.0.18
     Added TabCompleter for the list of available loaded commands and their arguments.
 
