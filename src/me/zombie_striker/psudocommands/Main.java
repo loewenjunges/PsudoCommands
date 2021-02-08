@@ -82,7 +82,7 @@ public class Main extends JavaPlugin {
 			if (psudoAs) {
 				if (args[0].equalsIgnoreCase("Console"))
 					senders[0] = Bukkit.getConsoleSender();
-				else if (args[0].contains("@")) {
+				else if (args[0].startsWith("@")) {
 					senders = CommandUtils.getTargets(sender, args[0]);
 				} else {
 					senders[0] = Bukkit.getPlayer(args[0]);
@@ -102,6 +102,7 @@ public class Main extends JavaPlugin {
 					step = 1;
 					List<StringBuilder> temps = new ArrayList<>();
 					for (StringBuilder cmd : cmds) {
+
 						// Set of 3 relative, world or local coordinates. The first one has to be relative or local ~ ^
 						if (CommandUtils.isRelativeCoord(args[i], true)) {
 							step = 3;
@@ -111,7 +112,7 @@ public class Main extends JavaPlugin {
 									   "Please provide three coordinates after \"" + args[i] + "\"");
 								return false;
 							}
-							Location origin = ((Entity) issue).getLocation();
+							Location origin = CommandUtils.getLocation(issue);
 							Location arv;
 							if(args[i].startsWith("^")) {
 								if(!args[i+1].startsWith("^") || !args[i+2].startsWith("^")) {
@@ -129,6 +130,7 @@ public class Main extends JavaPlugin {
 								arv = CommandUtils.getRelativeCoord(args[i], args[i+1], args[i+2], origin);
 							}
 							cmd.append(arv.getX()).append(" ").append(arv.getY()).append(" ").append(arv.getZ());
+
 						// Targets from the selector
 						} else if (args[i].startsWith("@")) {
 							Entity[] e = CommandUtils.getTargets(issue, args[i]);
@@ -162,6 +164,7 @@ public class Main extends JavaPlugin {
 									cmd.append(e[0].getUniqueId().toString());
 								}
 							}
+
 						} else {
 							cmd.append(args[i]);
 						}

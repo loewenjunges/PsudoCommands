@@ -55,15 +55,7 @@ public class CommandUtils {
 	 */
 	public static Entity[] getTargets(CommandSender sender, String arg) {
 		Entity[] ents;
-		Location loc = null;
-		if (sender instanceof Player) {
-			loc = ((Player) sender).getLocation();
-		} else if (sender instanceof BlockCommandSender) {
-			// Center of block.
-			loc = ((BlockCommandSender) sender).getBlock().getLocation().add(.5, 0, .5);
-		} else if (sender instanceof CommandMinecart) {
-			loc = ((CommandMinecart) sender).getLocation();
-		}
+		Location loc = getLocation(sender);
 		String[] tags = getTags(arg);
 
 		// prefab fix
@@ -83,8 +75,8 @@ public class CommandUtils {
 			ents = new Entity[1];
 			if (sender instanceof Player) {
 				boolean good = true;
-				for (int b = 0; b < tags.length; b++) {
-					if (!canBeAccepted(tags[b], (Entity) sender, loc)) {
+				for (String tag : tags) {
+					if (!canBeAccepted(tag, (Entity) sender, loc)) {
 						good = false;
 						break;
 					}
@@ -273,19 +265,19 @@ public class CommandUtils {
 		if(x.startsWith("~")) {
 			arrival.setX(arrival.getX() + getCoordinate(x));
 		} else {
-			arrival.setX(getCoordinate(x));
+			arrival.setX(Double.parseDouble(x));
 		}
 
 		if(y.startsWith("~")) {
 			arrival.setY(arrival.getY() + getCoordinate(y));
 		} else {
-			arrival.setY(getCoordinate(y));
+			arrival.setY(Double.parseDouble(y));
 		}
 
 		if(z.startsWith("~")) {
 			arrival.setZ(arrival.getZ() + getCoordinate(z));
 		} else {
-			arrival.setZ(getCoordinate(z));
+			arrival.setZ(Double.parseDouble(z));
 		}
 		return arrival;
 	}
@@ -313,6 +305,22 @@ public class CommandUtils {
 		return arrival.add(dirX.multiply(getCoordinate(x)))
 				      .add(dirY.multiply(getCoordinate(y)))
 				      .add(dirZ.multiply(getCoordinate(z)));
+	}
+
+	/**
+	 * Get the location of the sender if it exists.
+	 * @param sender The command sender.
+	 * @return The location of the sender, null if it's the Console.
+	 */
+	public static Location getLocation(CommandSender sender) {
+		Location loc = null;
+		if (sender instanceof Entity) {
+			loc = ((Player) sender).getLocation();
+		} else if (sender instanceof BlockCommandSender) {
+			// Center of block.
+			loc = ((BlockCommandSender) sender).getBlock().getLocation().add(.5, 0, .5);
+		}
+		return loc;
 	}
 
 	private static double getCoordinate(String c) {
