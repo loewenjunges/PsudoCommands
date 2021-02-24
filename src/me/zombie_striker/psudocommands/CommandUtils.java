@@ -10,7 +10,6 @@ import org.bukkit.entity.Damageable;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.minecart.CommandMinecart;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Team;
 import org.bukkit.util.Vector;
@@ -228,6 +227,76 @@ public class CommandUtils {
 		if (e == null || e.length == 0)
 			return null;
 		return e[0];
+	}
+
+	/**
+	 * Modify the given String array to concat some arguments in one according
+	 * to the begin and the end. For example, if : begin and end are double
+	 * quote " and sep is a space space :
+	 * split is ["first", "second", "\"combine", "args", "in", "one\"", "last"]
+	 * index is 2
+	 * -> returns ["first", "second", "combine args in one", "last"]
+	 * If index isn't 2, nothing will happen.
+	 *
+	 *
+	 * Begin (resp. end) must be at the begining (resp. the end) of their
+	 * argument if they represent the begining (resp. the end) of the new args.
+	 * They are also removed.
+	 * @param args The initial array.
+	 * @param index The index of the start.
+	 * @param begin String that represents the begin of the concat argument.
+	 * @param end String that represents the end of the concat argument.
+	 * @param sep The separator, often a space.
+	 * @return A new String array or the same reference than the given array.
+	 */
+	public static String[] combineArgs(String[] args, int index, String begin, String end, String sep) {
+		if (index >= args.length) {
+			return args;
+		}
+		String prevArg = args[index];
+		if(prevArg.startsWith(begin)) {
+			int beginLength = begin.length();
+			int endLength = end.length();
+			boolean onlyBegin = prevArg.equals(begin);
+			if (onlyBegin && index == args.length-1) {
+				// The index is the last and text only the begin string... What's your problem ??
+				args[index] = "";
+				return args;
+			} else if (!onlyBegin && prevArg.endsWith(end)) {
+				// something like <"argument">, only remove quotes
+				args[index] = prevArg.substring(beginLength, prevArg.length() - endLength);
+				return args;
+			} else {
+				// Loop to the end or the arg with quotes in last char
+				StringBuilder newArg = new StringBuilder(onlyBegin ? args[index+1] : prevArg.substring(beginLength));
+				int i = index + (onlyBegin ? 2 : 1);
+				while (i < args.length && !args[i].endsWith(end)) {
+					newArg.append(sep).append(args[i]);
+					i++;
+				}
+
+				// If true, it means it found the "end" string at the end of the current arg
+				if (i < args.length) {
+					newArg.append(sep).append(args[i], 0, args[i].length() - endLength);
+					i++;
+				}
+				// modify this to copy
+				args[index] = newArg.toString();
+
+				// copy the split array into a new one.
+				String[] newArgs = new String[args.length - i + index+1];
+				System.arraycopy(args, 0, newArgs, 0, index+1);
+				if (i < args.length) {
+					System.arraycopy(args, i, newArgs, index + 1, args.length - i);
+				}
+
+				// set split like before copy
+				args[index] = prevArg;
+
+				return newArgs;
+			}
+		}
+		return args;
 	}
 
 	/**

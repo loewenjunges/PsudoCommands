@@ -1,3 +1,6 @@
+1.0.21
+    Selectors can now have spaces between their tags.
+
 1.0.20
     Fixed some bugs with coordinates and code improvement
 

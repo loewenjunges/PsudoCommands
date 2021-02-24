@@ -79,6 +79,18 @@ public class Main extends JavaPlugin {
 						+ ((psudoAs && args.length == 0) ? "player name" : "command") + ".");
 				return false;
 			}
+
+			// Remove every spaces between tags inside a selector
+			for (int i = 0; i < args.length; i++) {
+				if (args[i].startsWith("@")) {
+					args = CommandUtils.combineArgs(args, i, "", "]", "");
+					// Because the method combineArgs remove the begin and end
+					// strings it found
+					args[i] = args[i] + "]";
+				}
+			}
+
+			// Get senders (only one if it's not /psudoas)
 			if (psudoAs) {
 				if (args[0].equalsIgnoreCase("Console"))
 					senders[0] = Bukkit.getConsoleSender();
@@ -94,6 +106,7 @@ public class Main extends JavaPlugin {
 				sender.sendMessage(ChatColor.RED + "The sender is null. Choose a valid player or \"Console\"");
 				return false;
 			}
+
 			for (CommandSender issue : senders) {
 				List<StringBuilder> cmds = new ArrayList<>();
 				cmds.add(new StringBuilder());
