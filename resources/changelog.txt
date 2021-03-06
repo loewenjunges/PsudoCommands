@@ -1,3 +1,6 @@
+1.0.22
+    Fixed issue when a selector doesn't have argument with e.g. only @e[] or @e.
+
 1.0.21
     Selectors can now have spaces between their tags.
 

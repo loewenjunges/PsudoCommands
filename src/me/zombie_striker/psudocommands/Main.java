@@ -13,6 +13,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class Main extends JavaPlugin {
 
@@ -82,7 +83,7 @@ public class Main extends JavaPlugin {
 
 			// Remove every spaces between tags inside a selector
 			for (int i = 0; i < args.length; i++) {
-				if (args[i].startsWith("@")) {
+				if (Pattern.matches("@.\\[.*", args[i])) {
 					args = CommandUtils.combineArgs(args, i, "", "]", "");
 					// Because the method combineArgs remove the begin and end
 					// strings it found

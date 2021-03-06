@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.regex.Pattern;
 
 public class CommandUtils {
 
@@ -476,7 +477,7 @@ public class CommandUtils {
 	}
 
 	private static String[] getTags(String arg) {
-		if (!arg.contains("["))
+		if (Pattern.matches("@.(\\[ *\\])?", arg))
 			return new String[0];
 		String tags = arg.split("\\[")[1].split("\\]")[0];
 		return tags.split(",");
