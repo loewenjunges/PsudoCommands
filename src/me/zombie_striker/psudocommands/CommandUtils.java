@@ -395,7 +395,11 @@ public class CommandUtils {
 
 	private static double getCoordinate(String c) {
 		// c is like ^3 or ~-1.2 or 489.1
-		return c.length() == 1 ? 0 : Double.parseDouble(c.substring(1));
+		if (Character.isDigit(c.charAt(0))) {
+			return Double.parseDouble(c);
+		} else {
+			return c.length() == 1 ? 0 : Double.parseDouble(c.substring(1));
+		}
 	}
 
 	private static boolean isDouble(String str) {

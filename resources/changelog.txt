@@ -1,3 +1,6 @@
+1.0.23
+    Fixed specific issue with local or relative coordinates.
+
 1.0.22
     Fixed issue when a selector doesn't have argument with e.g. only @e[] or @e.
 
