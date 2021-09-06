@@ -22,6 +22,18 @@ import java.util.regex.Pattern;
 
 public class CommandUtils {
 
+	public static boolean isSelector(String arg) {
+		return Pattern.matches("@[aerps](\\[.*\\])?", arg);
+	}
+
+	public static boolean isSelectorWithoutTag(String arg) {
+		return Pattern.matches("@[aerps](\\[ *\\])?", arg);
+	}
+
+	public static boolean isSelectorStartWithTag(String arg) {
+		return Pattern.matches("@[aerps]\\[", arg);
+	}
+
 	/**
 	 * Use this if you are unsure if a player provided the "@a" tag. This will allow
 	 * multiple entities to be retrieved.
@@ -481,7 +493,7 @@ public class CommandUtils {
 	}
 
 	private static String[] getTags(String arg) {
-		if (Pattern.matches("@.(\\[ *\\])?", arg))
+		if (isSelectorWithoutTag(arg))
 			return new String[0];
 		String tags = arg.split("\\[")[1].split("\\]")[0];
 		return tags.split(",");

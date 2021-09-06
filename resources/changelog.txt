@@ -1,3 +1,6 @@
+1.0.24
+    Fixed error when a @ is used in the command but not as selector.
+
 1.0.23
     Fixed specific issue with local or relative coordinates.
 

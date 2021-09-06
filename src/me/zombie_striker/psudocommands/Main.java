@@ -83,7 +83,7 @@ public class Main extends JavaPlugin {
 
 			// Remove every spaces between tags inside a selector
 			for (int i = 0; i < args.length; i++) {
-				if (Pattern.matches("@.\\[.*", args[i])) {
+				if (CommandUtils.isSelectorStartWithTag(args[i])) {
 					args = CommandUtils.combineArgs(args, i, "", "]", "");
 					// Because the method combineArgs remove the begin and end
 					// strings it found
@@ -95,7 +95,7 @@ public class Main extends JavaPlugin {
 			if (psudoAs) {
 				if (args[0].equalsIgnoreCase("Console"))
 					senders[0] = Bukkit.getConsoleSender();
-				else if (args[0].startsWith("@")) {
+				else if (CommandUtils.isSelector(args[0])) {
 					senders = CommandUtils.getTargets(sender, args[0]);
 				} else {
 					senders[0] = Bukkit.getPlayer(args[0]);
@@ -146,7 +146,7 @@ public class Main extends JavaPlugin {
 							cmd.append(arv.getX()).append(" ").append(arv.getY()).append(" ").append(arv.getZ());
 
 						// Targets from the selector
-						} else if (args[i].startsWith("@")) {
+						} else if (CommandUtils.isSelector(args[i])) {
 							Entity[] e = CommandUtils.getTargets(issue, args[i]);
 							if (e == null)
 								continue;
