@@ -123,8 +123,8 @@ public class CommandUtils {
 				if (listOfValidEntities.size() >= C)
 					break;
 				boolean isValid = true;
-				for (int b = 0; b < tags.length; b++) {
-					if (!canBeAccepted(tags[b], e, loc)) {
+				for (String tag : tags) {
+					if (!canBeAccepted(tag, e, loc)) {
 						isValid = false;
 						break;
 					}
@@ -673,8 +673,8 @@ public class CommandUtils {
 
 	private static boolean isScoreWithin(String arg, Entity e) {
 		String[] scores = arg.split("\\{")[1].split("\\}")[0].split(",");
-		for (int i = 0; i < scores.length; i++) {
-			String[] s = scores[i].split("=");
+		for (String value : scores) {
+			String[] s = value.split("=");
 			String name = s[0];
 
 			for (Objective o : Bukkit.getScoreboardManager().getMainScoreboard().getObjectives()) {
@@ -780,11 +780,9 @@ public class CommandUtils {
 	private static boolean isName(String arg, Entity e) {
 		if (getName(arg) == null)
 			return true;
-		if ((isInverted(arg) != (e.getCustomName() != null) && isInverted(arg) != (getName(arg)
+		return isInverted(arg) == (e.getCustomName() == null) && isInverted(arg) != (getName(arg)
 				.equals(e.getCustomName().replace(" ", "_"))
-				|| (e instanceof Player && e.getName().replace(" ", "_").equalsIgnoreCase(getName(arg))))))
-			return true;
-		return false;
+				|| (e instanceof Player && e.getName().replace(" ", "_").equalsIgnoreCase(getName(arg))));
 	}
 
 	private static boolean isType(String arg, Entity e) {

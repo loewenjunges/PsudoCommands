@@ -1,3 +1,6 @@
+1.0.25
+    Added /psudoasraw command that ignore selectors and relative coordinates ~ ^ in command, to only parse the sender selector.
+
 1.0.24
     Fixed error when a @ is used in the command but not as selector.
 
