@@ -617,44 +617,46 @@ public class CommandUtils {
 	}
 
 	private static boolean isWithinDistance(String arg, Location start, Entity e) {
-		double distanceMin = 0;
-		double distanceMax = Double.MAX_VALUE;
-		String distance = arg.split("=")[1];
-		if (e.getLocation().getWorld() != start.getWorld())
+		if (e.getLocation().getWorld() != start.getWorld()) {
 			return false;
+		}
+		double distanceMin = 0;
+		String distance = arg.split("=")[1];
+		double actDis = start.distanceSquared(e.getLocation());
 		if (distance.contains("..")) {
 			String[] temp = distance.split("\\.\\.");
 			if (!temp[0].isEmpty()) {
-				distanceMin = Integer.parseInt(temp[0]);
+				distanceMin = Double.parseDouble(temp[0]);
 			}
 			if (temp.length > 1 && !temp[1].isEmpty()) {
-				distanceMax = Double.parseDouble(temp[1]);
+				double distanceMax = Double.parseDouble(temp[1]);
+				return actDis <= distanceMax * distanceMax && distanceMin * distanceMin <= actDis;
+			} else {
+				// else distMax isn't set, to avoid overflow with distanceMax^2 we check only one condition
+				return distanceMin * distanceMin <= actDis;
 			}
-			double actDis = start.distanceSquared(e.getLocation());
-			return actDis <= distanceMax * distanceMax && distanceMin * distanceMin <= actDis;
 		} else {
-			int mult = Integer.parseInt(distance);
-			mult *= mult;
-			return ((int) start.distanceSquared(e.getLocation())) == mult;
+			distanceMin = Double.parseDouble(distance);
+			return actDis == distanceMin * distanceMin;
 		}
 	}
 
 	private static boolean isWithinLevel(String arg, Entity e) {
 		if (!(e instanceof Player))
 			return false;
-		double distanceMin = 0;
-		double distanceMax = Double.MAX_VALUE;
+		int min = 0;
+		int max = Integer.MAX_VALUE;
 		String distance = arg.split("=")[1];
 		if (distance.contains("..")) {
 			String[] temp = distance.split("..");
 			if (!temp[0].isEmpty()) {
-				distanceMin = Integer.parseInt(temp[0]);
+				min = Integer.parseInt(temp[0]);
 			}
 			if (temp[1] != null && !temp[1].isEmpty()) {
-				distanceMax = Double.parseDouble(temp[1]);
+				max = Integer.parseInt(temp[1]);
 			}
-			double actDis = ((Player) e).getExpToLevel();
-			return actDis <= distanceMax * distanceMax && distanceMin * distanceMin <= actDis;
+			int actDis = ((Player) e).getExpToLevel();
+			return actDis <= max && min <= actDis;
 		} else {
 			return ((Player) e).getExpToLevel() == Integer.parseInt(distance);
 		}
@@ -820,15 +822,15 @@ public class CommandUtils {
 		if (arg.contains("..")) {
 			String[] temp = arg.split("\\.\\.");
 			if (!temp[0].isEmpty()) {
-				min = Integer.parseInt(temp[0]);
+				min = Double.parseDouble(temp[0]);
 			}
 			if (temp.length > 1 && !temp[1].isEmpty()) {
 				max = Double.parseDouble(temp[1]);
 			}
 			return (value <= max && min <= value) != inverted;
 		} else {
-			double mult = Double.parseDouble(arg);
-			return (value == mult) != inverted;
+			min = Double.parseDouble(arg);
+			return (value == min) != inverted;
 		}
 	}
 

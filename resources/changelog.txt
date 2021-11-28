@@ -1,3 +1,6 @@
+1.0.26
+    Fixed some usage of distance in min..max in selector, like 0.1..10.
+
 1.0.25
     Added /psudoasraw command that ignore selectors and relative coordinates ~ ^ in command, to only parse the sender selector.
 
