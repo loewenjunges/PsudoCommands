@@ -390,19 +390,18 @@ public class CommandUtils {
 	}
 
 	/**
-	 * Get the location of the sender if it exists.
+	 * Get the location of the sender
 	 * @param sender The command sender.
-	 * @return The location of the sender, null if it's the Console.
+	 * @return The location of the sender, the default world's location if it's the Console.
 	 */
 	public static Location getLocation(CommandSender sender) {
-		Location loc = null;
 		if (sender instanceof Entity) {
-			loc = ((Player) sender).getLocation();
+			return ((Entity) sender).getLocation();
 		} else if (sender instanceof BlockCommandSender) {
-			// Center of block.
-			loc = ((BlockCommandSender) sender).getBlock().getLocation().add(.5, 0, .5);
+			return ((BlockCommandSender) sender).getBlock().getLocation().add(.5, 0, .5); // Center of block
+		} else {
+			return Bukkit.getWorlds().get(0).getSpawnLocation();
 		}
-		return loc;
 	}
 
 	private static double getCoordinate(String c) {
@@ -673,11 +672,12 @@ public class CommandUtils {
 	private static boolean isScoreWithin(String arg, Entity e) {
 		String[] scores = arg.split("\\{")[1].split("\\}")[0].split(",");
 		for (String value : scores) {
-			String[] scoreTest = value.split("=");
+			boolean isInverted =  value.contains("!=");
+			String[] scoreTest = isInverted ? value.split("!=") : value.split("=");
 			Objective o = Bukkit.getScoreboardManager().getMainScoreboard().getObjective(scoreTest[0]);
 			if (o != null) {
 				int score = o.getScore(e instanceof Player ? e.getName() : e.getUniqueId().toString()).getScore();
-				if (!isWithinDoubleValue(isInverted(scoreTest[1]), scoreTest[1], score)) {
+				if (!isWithinDoubleValue(isInverted(value), scoreTest[1], score)) {
 					return false;
 				}
 			}

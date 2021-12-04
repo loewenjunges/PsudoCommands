@@ -1,5 +1,9 @@
 1.0.27
-    Optimized team=, scores= and fixed name= not working on players (their CustomName is null)
+    Optimized team=, scores= to find a Team or an Objective
+    Fixed scores={objective!=min..max}
+    Fixed name= not working on players (their CustomName is null)
+    Fixed get distance of non player entities
+    Console has now a location at default world's spawn
 
 1.0.26
     Fixed some usage of distance in min..max in selector, like 0.1..10.

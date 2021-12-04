@@ -111,9 +111,11 @@ public class Main extends JavaPlugin {
 		} else {
 			senders[0] = sender;
 		}
-		if (senders == null || senders.length == 0 || senders[0] == null) {
+		if (senders == null || (senders.length != 0 && senders[0] == null)) {
 			sender.sendMessage(ChatColor.RED + "The sender is null. Choose a valid player or \"Console\"");
 			return false;
+		} else if (senders.length == 0) {
+			return true; // no sender -> the command does nothing at all, so it's working
 		}
 
 		for (CommandSender issue : senders) {
