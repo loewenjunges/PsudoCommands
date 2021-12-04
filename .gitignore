@@ -1,17 +1,38 @@
 # Eclipse stuff
-/.classpath
-/.project
-/.settings
+.classpath
+.project
+.settings/
+
+# VSCode stuff
+.vscode/
+
+# netbeans
+nbproject/
+nbactions.xml
 
 # IntelliJ stuff
-/.idea
+*.iml
+*.ipr
+*.iws
+.idea/
+out/
+
+# various other potential build files
+build/
+bin/
+dist/
+manifest.mf
 
 # maven
-/target
-
-# ant
-/bin
-/dist
+target/
+dependency-reduced-pom.xml
 
 # vim
 .*.sw[a-p]
+
+# Mac filesystem dust
+.DS_Store/
+.DS_Store
+
+# Linux temp files
+*~
