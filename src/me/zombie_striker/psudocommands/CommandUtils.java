@@ -597,15 +597,12 @@ public class CommandUtils {
 	}
 
 	private static boolean isTeam(String arg, Entity e) {
-		if (!(e instanceof Player))
-			return false;
-		for (Team t : Bukkit.getScoreboardManager().getMainScoreboard().getTeams()) {
-			if ((t.getName().equalsIgnoreCase(getTeam(arg)) != isInverted(arg))) {
-				if ((t.getEntries().contains(e.getName()) != isInverted(arg)))
-					return true;
-			}
+		Team t = Bukkit.getScoreboardManager().getMainScoreboard().getTeam(getTeam(arg));
+		if (t != null && t.getEntries().contains(e.getName())) {
+			return !isInverted(arg);
+		} else {
+			return isInverted(arg);
 		}
-		return false;
 	}
 
 	private static boolean isWithinPitch(String arg, Entity e) {
@@ -663,28 +660,25 @@ public class CommandUtils {
 	}
 
 	private static boolean isScore(String arg, Entity e) {
-		for (Objective o : Bukkit.getScoreboardManager().getMainScoreboard().getObjectives()) {
-			if (o.getName().equalsIgnoreCase(getScoreName(arg))) {
-				int score = o.getScore(e instanceof Player ? e.getName() : e.getUniqueId().toString()).getScore();
-				if (score <= getValueAsInteger(arg) != isInverted(arg))
-					return true;
+		Objective o = Bukkit.getScoreboardManager().getMainScoreboard().getObjective(getScoreName(arg));
+		if (o != null) {
+			int score = o.getScore(e instanceof Player ? e.getName() : e.getUniqueId().toString()).getScore();
+			if (score <= getValueAsInteger(arg)) {
+				return !isInverted(arg);
 			}
 		}
-		return false;
+		return isInverted(arg);
 	}
 
 	private static boolean isScoreWithin(String arg, Entity e) {
 		String[] scores = arg.split("\\{")[1].split("\\}")[0].split(",");
 		for (String value : scores) {
-			String[] s = value.split("=");
-			String name = s[0];
-
-			for (Objective o : Bukkit.getScoreboardManager().getMainScoreboard().getObjectives()) {
-				if (o.getName().equalsIgnoreCase(name)) {
-					int score = o.getScore(e instanceof Player ? e.getName() : e.getUniqueId().toString()).getScore();
-					if (!isWithinDoubleValue(isInverted(arg), s[1], score)) {
-						return false;
-					}
+			String[] scoreTest = value.split("=");
+			Objective o = Bukkit.getScoreboardManager().getMainScoreboard().getObjective(scoreTest[0]);
+			if (o != null) {
+				int score = o.getScore(e instanceof Player ? e.getName() : e.getUniqueId().toString()).getScore();
+				if (!isWithinDoubleValue(isInverted(scoreTest[1]), scoreTest[1], score)) {
+					return false;
 				}
 			}
 		}
@@ -696,15 +690,14 @@ public class CommandUtils {
 	}
 
 	private static boolean isScoreMin(String arg, Entity e) {
-		for (Objective o : Bukkit.getScoreboardManager().getMainScoreboard().getObjectives()) {
-			if (o.getName().equalsIgnoreCase(getScoreMinName(arg))) {
-				int score = o.getScore(e instanceof Player ? e.getName() : e.getUniqueId().toString()).getScore();
-				if (score >= getValueAsInteger(arg) != isInverted(arg)) {
-					return true;
-				}
+		Objective o = Bukkit.getScoreboardManager().getMainScoreboard().getObjective(getScoreMinName(arg));
+		if (o != null) {
+			int score = o.getScore(e instanceof Player ? e.getName() : e.getUniqueId().toString()).getScore();
+			if (score >= getValueAsInteger(arg)) {
+				return !isInverted(arg);
 			}
 		}
-		return false;
+		return isInverted(arg);
 	}
 
 	private static boolean isRM(String arg, Location loc, Entity e) {
@@ -780,19 +773,20 @@ public class CommandUtils {
 	}
 
 	private static boolean isName(String arg, Entity e) {
-		if (getName(arg) == null)
-			return true;
-		return isInverted(arg) == (e.getCustomName() == null) && isInverted(arg) != (getName(arg)
-				.equals(e.getCustomName().replace(" ", "_"))
-				|| (e instanceof Player && e.getName().replace(" ", "_").equalsIgnoreCase(getName(arg))));
+		String name = getName(arg);
+		if (name == null) return true;
+
+		if (e instanceof Player) {
+			return e.getName().equalsIgnoreCase(name) != isInverted(arg);
+		} else if (e.getCustomName() != null) {
+			return isInverted(arg) != (name.equals(e.getCustomName().replace(" ", "_")));
+		} else {
+			return isInverted(arg);
+		}
 	}
 
 	private static boolean isType(String arg, Entity e) {
-		boolean invert = isInverted(arg);
-		String type = getType(arg);
-		if (invert != e.getType().name().equalsIgnoreCase(type))
-			return true;
-		return false;
+		return isInverted(arg) != e.getType().name().equalsIgnoreCase(getType(arg));
 
 	}
 
