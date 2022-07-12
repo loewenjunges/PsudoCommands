@@ -103,15 +103,19 @@ public class Main extends JavaPlugin {
 		if (psudoAs || psudoAsRaw) {
 			if (args[0].equalsIgnoreCase("Console"))
 				senders[0] = Bukkit.getConsoleSender();
-			else if (CommandUtils.isSelector(args[0])) {
-				senders = CommandUtils.getTargets(sender, args[0]);
-			} else {
-				senders[0] = Bukkit.getPlayer(args[0]);
+			else {
+				try {
+					senders = Bukkit.selectEntities(sender, args[0]).toArray(new CommandSender[0]);
+				} catch (IllegalArgumentException e) {
+					sender.sendMessage(ChatColor.RED + e.getMessage());
+					sender.sendMessage(ChatColor.RED + e.getCause().getMessage());
+					return false;
+				}
 			}
 		} else {
 			senders[0] = sender;
 		}
-		if (senders == null || (senders.length != 0 && senders[0] == null)) {
+		if (senders.length != 0 && senders[0] == null) {
 			sender.sendMessage(ChatColor.RED + "The sender is null. Choose a valid player or \"Console\"");
 			return false;
 		} else if (senders.length == 0) {
@@ -157,20 +161,27 @@ public class Main extends JavaPlugin {
 
 					// Targets from the selector
 					} else if (!psudoAsRaw && CommandUtils.isSelector(args[i])) {
-						Entity[] e = CommandUtils.getTargets(issue, args[i]);
-						if (e == null)
-							continue;
+						List<Entity> selectedEntities;
+						try {
+							selectedEntities = Bukkit.selectEntities(issue, args[i]);
+						} catch (IllegalArgumentException e) {
+							sender.sendMessage(ChatColor.RED + e.getMessage());
+							sender.sendMessage(ChatColor.RED + e.getCause().getMessage());
+							return false;
+						}
 						boolean works = true;
-						for (int j = 1; j < e.length; j++) {
+						for (int j = 1; j < selectedEntities.size(); j++) {
 							StringBuilder sb = new StringBuilder(cmd.toString());
-							if (e[j] == null) {
+							if (selectedEntities.get(j) == null) {
 								works = false;
 								break;
 							}
 							if (psudo || psudoAs) {
-								sb.append((e[j].getCustomName() != null ? e[j].getCustomName() : e[j].getName()));
+								sb.append((selectedEntities.get(j).getCustomName() != null
+										? selectedEntities.get(j).getCustomName()
+										: selectedEntities.get(j).getName()));
 							} else if (psudoUUID) {
-								sb.append(e[j].getUniqueId());
+								sb.append(selectedEntities.get(j).getUniqueId());
 							}
 							if (i + 1 < args.length) {
 								sb.append(" ");
@@ -179,13 +190,15 @@ public class Main extends JavaPlugin {
 						}
 						if (!works)
 							return false;
-						if (e.length == 0 || e[0] == null) {
+						if (selectedEntities.isEmpty() || selectedEntities.get(0) == null) {
 							return false;
 						} else {
 							if (psudo || psudoAs) {
-								cmd.append(e[0].getCustomName() != null ? e[0].getCustomName() : e[0].getName());
+								cmd.append(selectedEntities.get(0).getCustomName() != null
+										? selectedEntities.get(0).getCustomName()
+										: selectedEntities.get(0).getName());
 							} else if (psudoUUID) {
-								cmd.append(e[0].getUniqueId());
+								cmd.append(selectedEntities.get(0).getUniqueId());
 							}
 						}
 
