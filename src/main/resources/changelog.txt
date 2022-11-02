@@ -1,3 +1,7 @@
+1.0.30
+    Added command /psudoasconsole that basically does the same thing as /psudoas but the console replaces all senders.
+    The command /psudoasconsole <command> replaces the old /psudoas console <command>.
+
 1.0.29
     Support execute vanilla command with psudo. The old behavior with only psudo still works, except for psudoas.
     The equivalent to "psudoas <target> <command>" is now "execute as <target> at @s run psudoas <command>".

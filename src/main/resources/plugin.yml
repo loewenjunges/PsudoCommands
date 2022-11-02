@@ -22,6 +22,9 @@ commands:
   psudoasop:
     description: Executed with 'execute as <target> run psudouas <command>', issues the next command as the target specified and ignore the permissions (the target does NOT get op), supporting the base-minecraft @ function.
     permission: psudocommand.psudoasop
+  psudoasconsole:
+    description: Same as psudoas but every sender is replaced by the console.
+    permission: psudocommand.psudoasconsole
 permissions:
    psudocommand.*:
      description: Gives access to all Psudo commands
@@ -31,3 +34,4 @@ permissions:
        psudocommand.psudoas: true
        psudocommand.psudoasraw: true
        psudocommand.psudoasop: true
+       psudocommand.psudoasconsole: true

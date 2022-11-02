@@ -25,7 +25,8 @@ public class PsudoCommandExecutor implements CommandExecutor, TabCompleter {
         PSUDO_UUID,
         PSUDO_AS,
         PSUDO_AS_RAW,
-        PSUDO_AS_OP;
+        PSUDO_AS_OP,
+        PSUDO_AS_CONSOLE;
 
         public boolean useBaseSender() {
             return this == PSUDO || this == PSUDO_UUID;
@@ -34,15 +35,17 @@ public class PsudoCommandExecutor implements CommandExecutor, TabCompleter {
         public static PsudoCommandType getType(Command command) {
             switch (command.getName().toLowerCase()) {
                 case "psudo":
-                    return PsudoCommandType.PSUDO;
+                    return PSUDO;
                 case "psudoas":
-                    return PsudoCommandType.PSUDO_AS;
+                    return PSUDO_AS;
                 case "psudoasraw":
-                    return PsudoCommandType.PSUDO_AS_RAW;
+                    return PSUDO_AS_RAW;
                 case "psudouuid":
-                    return PsudoCommandType.PSUDO_UUID;
+                    return PSUDO_UUID;
                 case "psudoasop":
                     return PSUDO_AS_OP;
+                case "psudoasconsole":
+                    return PSUDO_AS_CONSOLE;
             }
             return null;
         }
@@ -163,17 +166,18 @@ public class PsudoCommandExecutor implements CommandExecutor, TabCompleter {
                 temps.clear();
             }
         }
-        boolean atleastOne = false;
+        boolean atLeastOne = false;
+        CommandSender actualSender = type == PsudoCommandType.PSUDO_AS_CONSOLE ? Bukkit.getConsoleSender() : (type.useBaseSender() ? baseSender : sender);
         for (StringBuilder cmd : cmds) {
             if (type != PsudoCommandType.PSUDO_AS_OP) {
-                if (Bukkit.dispatchCommand(type.useBaseSender() ? baseSender : sender, cmd.toString()))
-                    atleastOne = true;
+                if (Bukkit.dispatchCommand(actualSender, cmd.toString()))
+                    atLeastOne = true;
             } else {
-                if (PsudoCommodoreExtension.dispatchCommandIgnorePerms(sender, cmd.toString()))
-                    atleastOne = true;
+                if (PsudoCommodoreExtension.dispatchCommandIgnorePerms(actualSender, cmd.toString()))
+                    atLeastOne = true;
             }
         }
-        return atleastOne;
+        return atLeastOne;
     }
 
     @Override
