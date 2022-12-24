@@ -1,3 +1,6 @@
+1.0.31
+    Updated for 1.19.3.
+
 1.0.30
     Added command /psudoasconsole that basically does the same thing as /psudoas but the console replaces all senders.
     The command /psudoasconsole <command> replaces the old /psudoas console <command>.

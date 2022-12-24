@@ -3,7 +3,7 @@ package me.lucko.commodore;
 import com.google.common.base.Preconditions;
 import com.mojang.brigadier.StringReader;
 import me.zombie_striker.psudocommands.DispatchCommandPaperHook;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -34,7 +34,7 @@ public class PsudoCommodoreExtension {
 
     private static final Method ENTITY_SELECTOR_FIND_ENTITIES_METHOD; // Spigot: EntitySelector#getEntities(CommandListenerWrapper), Mojang: EntitySelector#findEntities(CommandSourceStack)
     private static final Method LOCAL_COORD_GET_POSITION_METHOD; // Spigot: ArgumentVectorPosition#a(CommandListenerWrapper), Mojang: LocalCoordinates#getPosition(CommandSourceStack)
-    private static final Method GET_X, GET_Y, GET_Z; // Spigot: Vec3D#a(), Mojang: Vec3#getX()
+    private static final Method GET_X, GET_Y, GET_Z; // Spigot: Vec3D#a(), Mojang: Vec3#x()
     private static final Method GET_COMMAND_MAP_METHOD; // craftbukkit package: CraftServer#getCommandMap()
     private static final Method GET_KNOW_COMMANDS_METHOD; // craftbukkit package: CraftCommandMap#getKnownCommand()
     private static final Method GET_LISTENER; // craftbukkit package: VanillaCommandWrapper#getListener(CommandSender)
@@ -42,9 +42,21 @@ public class PsudoCommodoreExtension {
     private static final Constructor<?> LOCAL_COORD_CONSTRUCTOR;
 
     private static final Method SERVER_LEVEL_GET_WORLD; // craftbukkit method ServerLevel#getWorld(), null if getBukkitLocation is found
-    private static final Field X, Y; // craftbukkit method ServerLevel#getWorld(), null if getBukkitLocation is found
+    private static final Field X, Y; // x and y fields of Vec2 class
 
     static {
+        // org.bukkit.craftbukkit.v1_17_R1
+        String[] versions = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3].substring(1).split("_");
+        int version = Integer.parseInt(versions[1]);
+        int versionMinor;
+        if (version >= 17) {
+            // 1.17.1-R0.1-SNAPSHOT
+            versions = Bukkit.getBukkitVersion().split("-R")[0].split("\\.");
+            versionMinor = versions.length <= 2 ? 0 : Integer.parseInt(versions[2]);
+        } else {
+            versionMinor = Integer.parseInt(versions[2].substring(1));
+        }
+
         try {
             Class<?> commandListenerWrapper, commandListener, argumentEntity, entitySelector,
                     localCoordinates, vec3;
@@ -68,15 +80,15 @@ public class PsudoCommodoreExtension {
             Class<?> craftServer = ReflectionUtil.obcClass("CraftServer");
 
             // distinct obfuscated names
-            if (ReflectionUtil.minecraftVersion() >= 19) {
-                GET_ENTITY_METHOD = getMethod(commandListenerWrapper, "g");
-            } else if (ReflectionUtil.minecraftVersion() == 18) {
+            if (version >= 19) {
+                GET_ENTITY_METHOD = getMethod(commandListenerWrapper, versionMinor <= 2 ? "g" : "f");
+            } else if (version == 18) {
                 GET_ENTITY_METHOD = getMethod(commandListenerWrapper, "f");
             } else {
                 GET_ENTITY_METHOD = getMethod(commandListenerWrapper, "getEntity");
             }
             // same obfuscated names
-            if (ReflectionUtil.minecraftVersion() > 17) {
+            if (version > 17) {
                 ENTITY_ARGUMENT_ENTITIES_METHOD = getMethod(argumentEntity, "b");
                 ENTITY_SELECTOR_FIND_ENTITIES_METHOD = getMethod(entitySelector, "b", commandListenerWrapper);
                 GET_X = getMethod(vec3, "a");
@@ -116,7 +128,7 @@ public class PsudoCommodoreExtension {
             } else {
                 GET_BUKKIT_LOCATION_METHOD = null;
                 Class<?> level, vec2;
-                if (ReflectionUtil.minecraftVersion() > 16) {
+                if (version > 16) {
                     level = ReflectionUtil.mcClass("world.level.World");
                     vec2 = ReflectionUtil.mcClass("world.phys.Vec2F");
                 } else {
@@ -128,11 +140,11 @@ public class PsudoCommodoreExtension {
                 Y = vec2.getDeclaredField("j");
                 X.setAccessible(true);
                 Y.setAccessible(true);
-                if (ReflectionUtil.minecraftVersion() >= 19) {
-                    GET_POSITION = getMethod(commandListenerWrapper, "e");
-                    GET_LEVEL = getMethod(commandListenerWrapper, "f");
-                    GET_ROTATION = getMethod(commandListenerWrapper, "l");
-                } else if (ReflectionUtil.minecraftVersion() == 18) {
+                if (version >= 19) {
+                    GET_POSITION = getMethod(commandListenerWrapper, versionMinor <= 2 ? "e" : "d");
+                    GET_LEVEL = getMethod(commandListenerWrapper, versionMinor <= 2 ? "f" : "e");
+                    GET_ROTATION = getMethod(commandListenerWrapper, versionMinor <= 2 ? "l" : "k");
+                } else if (version == 18) {
                     GET_POSITION = getMethod(commandListenerWrapper, "d");
                     GET_LEVEL = getMethod(commandListenerWrapper, "e");
                     GET_ROTATION = getMethod(commandListenerWrapper, "i");
@@ -259,6 +271,7 @@ public class PsudoCommodoreExtension {
     }
 
     public static boolean dispatchCommandIgnorePerms(CommandSender sender, String commandstr) {
+        // TODO : org.apache.commons.lang3 will be removed in the future, keep an eye here
         String[] args = StringUtils.split(commandstr, ' ');
         if (args.length == 0) {
             return false;
