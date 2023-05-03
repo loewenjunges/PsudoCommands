@@ -1,6 +1,5 @@
 package me.zombie_striker.psudocommands;
 
-import me.lucko.commodore.PsudoCommodoreExtension;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -8,6 +7,7 @@ import org.bukkit.command.*;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -52,12 +52,12 @@ public class PsudoCommandExecutor implements CommandExecutor, TabCompleter {
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        return onCommand(sender, sender, PsudoCommodoreExtension.getCommandWrapperListenerObject(sender), PsudoCommandType.getType(command), args);
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
+        return onCommand(sender, sender, PsudoReflection.getCommandWrapperListenerObject(sender), PsudoCommandType.getType(command), args);
     }
 
     boolean onCommand(CommandSender baseSender, CommandSender sender, Object commandWrapperListener, PsudoCommandType type, String[] args) {
-        if (args.length <= 0) {
+        if (args.length == 0) {
             baseSender.sendMessage(ChatColor.GRAY + "[PsudoCommands] Please provide a valid command.");
             return false;
         }
@@ -98,7 +98,7 @@ public class PsudoCommandExecutor implements CommandExecutor, TabCompleter {
                                 baseSender.sendMessage(ChatColor.RED + "Cannot mix world & local coordinates (everything must either use ^ or not)");
                                 return false;
                             }
-                            arv = PsudoCommodoreExtension.getLocalCoord(CommandUtils.getCoordinate(args[i]),
+                            arv = PsudoReflection.getLocalCoord(CommandUtils.getCoordinate(args[i]),
                                     CommandUtils.getCoordinate(args[i+1]),
                                     CommandUtils.getCoordinate(args[i+2]),
                                     commandWrapperListener);
@@ -108,7 +108,7 @@ public class PsudoCommandExecutor implements CommandExecutor, TabCompleter {
                                 baseSender.sendMessage(ChatColor.RED + "Cannot mix world & local coordinates (everything must either use ^ or not)");
                                 return false;
                             }
-                            Location origin = PsudoCommodoreExtension.getBukkitLocation(commandWrapperListener);
+                            Location origin = PsudoReflection.getBukkitLocation(commandWrapperListener);
                             arv = CommandUtils.getRelativeCoord(args[i], args[i+1], args[i+2], origin);
                         }
                         cmd.append(arv.getX()).append(" ").append(arv.getY()).append(" ").append(arv.getZ());
@@ -117,7 +117,7 @@ public class PsudoCommandExecutor implements CommandExecutor, TabCompleter {
                     } else if (CommandUtils.isSelector(args[i])) {
                         List<Entity> selectedEntities;
                         try {
-                            selectedEntities = PsudoCommodoreExtension.selectEntities(commandWrapperListener, args[i]); // separate "at" and "as" with wrapper
+                            selectedEntities = PsudoReflection.selectEntities(commandWrapperListener, args[i]); // separate "at" and "as" with wrapper
                         } catch (IllegalArgumentException e) {
                             baseSender.sendMessage(ChatColor.RED + e.getMessage());
                             baseSender.sendMessage(ChatColor.RED + e.getCause().getMessage());
@@ -173,7 +173,7 @@ public class PsudoCommandExecutor implements CommandExecutor, TabCompleter {
                 if (Bukkit.dispatchCommand(actualSender, cmd.toString()))
                     atLeastOne = true;
             } else {
-                if (PsudoCommodoreExtension.dispatchCommandIgnorePerms(actualSender, cmd.toString()))
+                if (PsudoReflection.dispatchCommandIgnorePerms(actualSender, cmd.toString()))
                     atLeastOne = true;
             }
         }

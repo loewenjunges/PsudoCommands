@@ -29,7 +29,6 @@ public class CommandUtils {
 	 * -> returns ["first", "second", "combine args in one", "last"]
 	 * If index isn't 2, nothing will happen.
 	 *
-	 *
 	 * Begin (resp. end) must be at the beginning (resp. the end) of their
 	 * argument if they represent the beginning (resp. the end) of the new args.
 	 * They are also removed.

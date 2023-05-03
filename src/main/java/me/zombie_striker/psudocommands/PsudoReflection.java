@@ -1,8 +1,8 @@
-package me.lucko.commodore;
+package me.zombie_striker.psudocommands;
 
 import com.google.common.base.Preconditions;
+import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.StringReader;
-import me.zombie_striker.psudocommands.DispatchCommandPaperHook;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -16,7 +16,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 
-public class PsudoCommodoreExtension {
+public class PsudoReflection {
 
     private static final boolean PAPER;
 
@@ -32,12 +32,16 @@ public class PsudoCommodoreExtension {
     static final Method ENTITY_ARGUMENT_ENTITIES_METHOD, // Spigot: multipleEntities(), Mojang: entities()
                         ENTITY_ARGUMENT_PARSE_METHOD; // Spigot: a(StringReader, boolean), Mojang: parse(StringReader arg0) (boolean added by CraftBukkit)
 
+    static final Method GET_COMMANDS_DISPATCHER, // Spigot : MinecraftServer#getCommandDispatcher(), Mojang : MinecraftServer#getCommands()
+                        GET_DISPATCHER; // Spigot : CommandDispatcher#a(), Mojang : Commands#getDispatcher()
+
     private static final Method ENTITY_SELECTOR_FIND_ENTITIES_METHOD; // Spigot: EntitySelector#getEntities(CommandListenerWrapper), Mojang: EntitySelector#findEntities(CommandSourceStack)
     private static final Method LOCAL_COORD_GET_POSITION_METHOD; // Spigot: ArgumentVectorPosition#a(CommandListenerWrapper), Mojang: LocalCoordinates#getPosition(CommandSourceStack)
     private static final Method GET_X, GET_Y, GET_Z; // Spigot: Vec3D#a(), Mojang: Vec3#x()
     private static final Method GET_COMMAND_MAP_METHOD; // craftbukkit package: CraftServer#getCommandMap()
     private static final Method GET_KNOW_COMMANDS_METHOD; // craftbukkit package: CraftCommandMap#getKnownCommand()
     private static final Method GET_LISTENER; // craftbukkit package: VanillaCommandWrapper#getListener(CommandSender)
+    private static final Method GET_SERVER; // craftbukkit package: CraftServer#getServer()
 
     private static final Constructor<?> LOCAL_COORD_CONSTRUCTOR;
 
@@ -59,7 +63,7 @@ public class PsudoCommodoreExtension {
 
         try {
             Class<?> commandListenerWrapper, commandListener, argumentEntity, entitySelector,
-                    localCoordinates, vec3;
+                    localCoordinates, vec3, minecraftServer, commands;
             if (ReflectionUtil.minecraftVersion() > 16) {
                 commandListenerWrapper = ReflectionUtil.mcClass("commands.CommandListenerWrapper");
                 commandListener = ReflectionUtil.mcClass("commands.ICommandListener");
@@ -67,6 +71,8 @@ public class PsudoCommodoreExtension {
                 entitySelector = ReflectionUtil.mcClass("commands.arguments.selector.EntitySelector");
                 localCoordinates = ReflectionUtil.mcClass("commands.arguments.coordinates.ArgumentVectorPosition");
                 vec3 = ReflectionUtil.mcClass("world.phys.Vec3D");
+                minecraftServer = ReflectionUtil.mcClass("server.MinecraftServer");
+                commands = ReflectionUtil.mcClass("commands.CommandDispatcher");
             } else {
                 commandListenerWrapper = ReflectionUtil.nmsClass("CommandListenerWrapper");
                 commandListener = ReflectionUtil.nmsClass("ICommandListener");
@@ -74,6 +80,8 @@ public class PsudoCommodoreExtension {
                 entitySelector = ReflectionUtil.nmsClass("EntitySelector");
                 localCoordinates = ReflectionUtil.nmsClass("ArgumentVectorPosition");
                 vec3 = ReflectionUtil.nmsClass("Vec3D");
+                minecraftServer = ReflectionUtil.nmsClass("MinecraftServer");
+                commands = ReflectionUtil.nmsClass("CommandDispatcher");
             }
             Class<?> vanillaCommandWrapper = ReflectionUtil.obcClass("command.VanillaCommandWrapper");
             Class<?> craftCommandMap = ReflectionUtil.obcClass("command.CraftCommandMap");
@@ -82,10 +90,13 @@ public class PsudoCommodoreExtension {
             // distinct obfuscated names
             if (version >= 19) {
                 GET_ENTITY_METHOD = getMethod(commandListenerWrapper, versionMinor <= 2 ? "g" : "f");
+                GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, versionMinor == 3 ? "aB" : "aC");
             } else if (version == 18) {
                 GET_ENTITY_METHOD = getMethod(commandListenerWrapper, "f");
+                GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "aA");
             } else {
                 GET_ENTITY_METHOD = getMethod(commandListenerWrapper, "getEntity");
+                GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "getCommandDispatcher");
             }
             // same obfuscated names
             if (version > 17) {
@@ -102,12 +113,15 @@ public class PsudoCommodoreExtension {
                 GET_Z = getMethod(vec3, "getZ");
             }
             LOCAL_COORD_GET_POSITION_METHOD = getMethod(localCoordinates, "a", commandListenerWrapper);
+            GET_DISPATCHER = getMethod(commands, "a");
+
             ENTITY_ARGUMENT_PARSE_METHOD = getMethod(argumentEntity, "parse", StringReader.class, boolean.class); // craftbukkit method (without boolean, obf name is a)
             GET_BUKKIT_SENDER_METHOD = getMethod(commandListener, "getBukkitSender", commandListenerWrapper); // craftbukkit method
             GET_BUKKIT_BASED_SENDER_METHOD = getMethod(commandListenerWrapper, "getBukkitSender"); // craftbukkit method
             GET_LISTENER = getMethod(vanillaCommandWrapper, "getListener", CommandSender.class); // not NMS, craftbukkit package
             GET_KNOW_COMMANDS_METHOD = getMethod(craftCommandMap, "getKnownCommands"); // not NMS, craftbukkit package
-            GET_COMMAND_MAP_METHOD = getMethod(craftServer, "getCommandMap");
+            GET_COMMAND_MAP_METHOD = getMethod(craftServer, "getCommandMap"); // not NMS, craftbukkit package
+            GET_SERVER = getMethod(craftServer, "getServer"); // not NMS, craftbukkit package
 
             LOCAL_COORD_CONSTRUCTOR = localCoordinates.getConstructor(double.class, double.class, double.class);
             LOCAL_COORD_CONSTRUCTOR.setAccessible(true);
@@ -163,6 +177,16 @@ public class PsudoCommodoreExtension {
         Method method = clazz.getDeclaredMethod(name, params);
         method.setAccessible(true);
         return method;
+    }
+
+    public static CommandDispatcher<Object> getCommandDispatcher() {
+        try {
+            Object nmsDedicatedServer = GET_SERVER.invoke(Bukkit.getServer());
+            Object nmsDispatcher = GET_COMMANDS_DISPATCHER.invoke(nmsDedicatedServer);
+            return (CommandDispatcher<Object>) GET_DISPATCHER.invoke(nmsDispatcher);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static CommandSender getBukkitSender(Object commandWrapperListener) {
@@ -272,7 +296,8 @@ public class PsudoCommodoreExtension {
 
     public static boolean dispatchCommandIgnorePerms(CommandSender sender, String commandstr) {
         // TODO : org.apache.commons.lang3 will be removed in the future, keep an eye here
-        String[] args = StringUtils.split(commandstr, ' ');
+        //String[] args = StringUtils.split(commandstr, ' ');
+        String[] args = commandstr.split(" ");
         if (args.length == 0) {
             return false;
         }
