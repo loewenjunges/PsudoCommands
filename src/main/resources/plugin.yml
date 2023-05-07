@@ -1,6 +1,7 @@
 main: me.zombie_striker.psudocommands.PsudoCommands
 version: ${project.version}
 name: PsudoCommand
+load: STARTUP # fix strange Brigadier issue when this plugin loads after some others
 api-version: 1.14
 authors:
   - Zombie_Striker (original author)
