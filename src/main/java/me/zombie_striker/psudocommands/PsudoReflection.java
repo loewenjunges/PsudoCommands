@@ -16,6 +16,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 
+// https://mappings.cephx.dev/1.20.1/net/minecraft/commands/CommandSourceStack.html
 public class PsudoReflection {
 
     private static final boolean PAPER;
@@ -88,7 +89,10 @@ public class PsudoReflection {
             Class<?> craftServer = ReflectionUtil.obcClass("CraftServer");
 
             // distinct obfuscated names
-            if (version >= 19) {
+            if (version >= 20) {
+                GET_ENTITY_METHOD = getMethod(commandListenerWrapper, "f");
+                GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "aC");
+            } else if (version == 19) {
                 GET_ENTITY_METHOD = getMethod(commandListenerWrapper, versionMinor <= 2 ? "g" : "f");
                 GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, versionMinor == 3 ? "aB" : "aC");
             } else if (version == 18) {
@@ -154,7 +158,11 @@ public class PsudoReflection {
                 Y = vec2.getDeclaredField("j");
                 X.setAccessible(true);
                 Y.setAccessible(true);
-                if (version >= 19) {
+                if (version >= 20) {
+                    GET_POSITION = getMethod(commandListenerWrapper, "d");
+                    GET_LEVEL = getMethod(commandListenerWrapper, "e");
+                    GET_ROTATION = getMethod(commandListenerWrapper, "k");
+                } else if (version == 19) {
                     GET_POSITION = getMethod(commandListenerWrapper, versionMinor <= 2 ? "e" : "d");
                     GET_LEVEL = getMethod(commandListenerWrapper, versionMinor <= 2 ? "f" : "e");
                     GET_ROTATION = getMethod(commandListenerWrapper, versionMinor <= 2 ? "l" : "k");
