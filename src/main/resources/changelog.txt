@@ -1,3 +1,6 @@
+1.0.35
+    Support for Minecraft 1.20.4
+
 1.0.34
     Support for Minecraft 1.20.1.
 

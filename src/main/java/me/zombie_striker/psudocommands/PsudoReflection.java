@@ -3,7 +3,6 @@ package me.zombie_striker.psudocommands;
 import com.google.common.base.Preconditions;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.StringReader;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -16,7 +15,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 
-// https://mappings.cephx.dev/1.20.1/net/minecraft/commands/CommandSourceStack.html
+// https://mappings.cephx.dev/1.20.4/net/minecraft/commands/CommandSourceStack.html
 public class PsudoReflection {
 
     private static final boolean PAPER;
@@ -91,7 +90,8 @@ public class PsudoReflection {
             // distinct obfuscated names
             if (version >= 20) {
                 GET_ENTITY_METHOD = getMethod(commandListenerWrapper, "f");
-                GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "aC");
+                if (versionMinor <= 2) GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "aC");
+                else GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "aE");
             } else if (version == 19) {
                 GET_ENTITY_METHOD = getMethod(commandListenerWrapper, versionMinor <= 2 ? "g" : "f");
                 GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, versionMinor == 3 ? "aB" : "aC");
