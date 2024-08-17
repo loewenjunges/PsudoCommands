@@ -15,10 +15,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 
-// https://mappings.cephx.dev/1.20.4/net/minecraft/commands/CommandSourceStack.html
+// https://mappings.dev/1.21.1/net/minecraft/commands/CommandSourceStack.html
 public class PsudoReflection {
 
-    private static final boolean PAPER;
+    private static final boolean USING_PAPER;
 
     // CLASS NAME : Spigot: CommandListenerWrapper, Mojang: CommandSourceStack
     private static final Method GET_ENTITY_METHOD, // Method getEntity() (for both Spigot and Mojang)
@@ -49,18 +49,10 @@ public class PsudoReflection {
     private static final Field X, Y; // x and y fields of Vec2 class
 
     static {
-        // org.bukkit.craftbukkit.v1_17_R1
-        String[] versions = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3].substring(1).split("_");
+        // Example value of getBukkitVersion: 1.20.1-R0.1-SNAPSHOT
+        String[] versions = Bukkit.getBukkitVersion().split("-")[0].split("\\.");
         int version = Integer.parseInt(versions[1]);
-        int versionMinor;
-        if (version >= 17) {
-            // 1.17.1-R0.1-SNAPSHOT
-            versions = Bukkit.getBukkitVersion().split("-R")[0].split("\\.");
-            versionMinor = versions.length <= 2 ? 0 : Integer.parseInt(versions[2]);
-        } else {
-            versionMinor = Integer.parseInt(versions[2].substring(1));
-        }
-
+        int versionMinor = Integer.parseInt(versions[2]);
         try {
             Class<?> commandListenerWrapper, commandListener, argumentEntity, entitySelector,
                     localCoordinates, vec3, minecraftServer, commands;
@@ -88,10 +80,14 @@ public class PsudoReflection {
             Class<?> craftServer = ReflectionUtil.obcClass("CraftServer");
 
             // distinct obfuscated names
-            if (version >= 20) {
+            if (version >= 21) {
+                GET_ENTITY_METHOD = getMethod(commandListenerWrapper, "f");
+                GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "aH");
+            } else if (version >= 20) {
                 GET_ENTITY_METHOD = getMethod(commandListenerWrapper, "f");
                 if (versionMinor <= 2) GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "aC");
-                else GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "aE");
+                else if (versionMinor <= 4) GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "aE");
+                else GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "aH");
             } else if (version == 19) {
                 GET_ENTITY_METHOD = getMethod(commandListenerWrapper, versionMinor <= 2 ? "g" : "f");
                 GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, versionMinor == 3 ? "aB" : "aC");
@@ -118,8 +114,6 @@ public class PsudoReflection {
             }
             LOCAL_COORD_GET_POSITION_METHOD = getMethod(localCoordinates, "a", commandListenerWrapper);
             GET_DISPATCHER = getMethod(commands, "a");
-
-            ENTITY_ARGUMENT_PARSE_METHOD = getMethod(argumentEntity, "parse", StringReader.class, boolean.class); // craftbukkit method (without boolean, obf name is a)
             GET_BUKKIT_SENDER_METHOD = getMethod(commandListener, "getBukkitSender", commandListenerWrapper); // craftbukkit method
             GET_BUKKIT_BASED_SENDER_METHOD = getMethod(commandListenerWrapper, "getBukkitSender"); // craftbukkit method
             GET_LISTENER = getMethod(vanillaCommandWrapper, "getListener", CommandSender.class); // not NMS, craftbukkit package
@@ -131,11 +125,12 @@ public class PsudoReflection {
             LOCAL_COORD_CONSTRUCTOR.setAccessible(true);
 
             // If getBukkitLocation doesn't exist (i.e. server is not running on Paper), use obfuscated methods
-            PAPER = Arrays.stream(commandListenerWrapper.getDeclaredMethods())
+            USING_PAPER = Arrays.stream(commandListenerWrapper.getDeclaredMethods())
                     .map(Method::getName)
                     .anyMatch(m -> m.equals("getBukkitLocation"));
 
-            if (PAPER) {
+            if (USING_PAPER) {
+                ENTITY_ARGUMENT_PARSE_METHOD = getMethod(argumentEntity, "parse", StringReader.class, boolean.class); // craftbukkit method (without boolean, obf name is a)
                 GET_BUKKIT_LOCATION_METHOD = getMethod(commandListenerWrapper, "getBukkitLocation"); // Paper method
                 GET_POSITION = null;
                 GET_LEVEL = null;
@@ -144,6 +139,11 @@ public class PsudoReflection {
                 X = null;
                 Y = null;
             } else {
+                if (version >= 21) {
+                    ENTITY_ARGUMENT_PARSE_METHOD = getMethod(argumentEntity, "a", StringReader.class, boolean.class); // added natively
+                } else {
+                    ENTITY_ARGUMENT_PARSE_METHOD = getMethod(argumentEntity, "parse", StringReader.class, boolean.class);
+                }
                 GET_BUKKIT_LOCATION_METHOD = null;
                 Class<?> level, vec2;
                 if (version > 16) {
@@ -226,7 +226,7 @@ public class PsudoReflection {
         Objects.requireNonNull(commandWrapperListener, "commandWrapperListener");
 
         try {
-            if (PAPER) {
+            if (USING_PAPER) {
                 // problem with local coordinates that does not work because pos has nul yaw & pitch. We use local coordinates
                 // with the commandWrapperListener (cf. getLocalCoord) to avoid to get rotation and anchor by hand.
                 return (Location) GET_BUKKIT_LOCATION_METHOD.invoke(commandWrapperListener);
@@ -315,7 +315,7 @@ public class PsudoReflection {
             return false;
         }
 
-        if (PAPER) {
+        if (USING_PAPER) {
             DispatchCommandPaperHook.dispatchCommandPaper(sender, commandstr, command, sentCommandLabel, args);
         } else {
             try {
