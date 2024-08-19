@@ -52,7 +52,7 @@ public class PsudoReflection {
         // Example value of getBukkitVersion: 1.20.1-R0.1-SNAPSHOT
         String[] versions = Bukkit.getBukkitVersion().split("-")[0].split("\\.");
         int version = Integer.parseInt(versions[1]);
-        int versionMinor = Integer.parseInt(versions[2]);
+        int versionMinor = versions.length == 2 ? 0 : Integer.parseInt(versions[2]);
         try {
             Class<?> commandListenerWrapper, commandListener, argumentEntity, entitySelector,
                     localCoordinates, vec3, minecraftServer, commands;
