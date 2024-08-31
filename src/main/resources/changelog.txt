@@ -1,5 +1,8 @@
+1.0.37
+    Fix Brigadier usage for Paper 1.20.4+, for e.g. psudoas not dispatching properly as the sender.
+
 1.0.36
-    Support for Minecraft 1.21.1 and 1.2.6.
+    Support for Minecraft 1.21.1 and 1.20.6.
 
 1.0.35
     Support for Minecraft 1.20.4.

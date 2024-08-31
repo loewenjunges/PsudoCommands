@@ -1,10 +1,23 @@
 package me.zombie_striker.psudocommands;
 
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.PluginCommand;
 
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 
 public class CommandUtils {
+
+	public static final String EMPTY_COMMAND_ERROR = ChatColor.GRAY + "[PsudoCommands] Please provide a valid command.";
 
 	private static final Pattern IS_DECIMAL = Pattern.compile("[+-]?(\\d+(\\.\\d*)?|\\.\\d+)");
 
@@ -20,6 +33,54 @@ public class CommandUtils {
 		return Pattern.matches("@[aerps]\\[", arg);
 	}
 
+	// SuggestionProvider<CommandListenerWrapper>
+	public static CompletableFuture<Suggestions> getArgumentSuggestion(CommandContext<?> context, SuggestionsBuilder builder, PsudoCommandExecutor executor, PluginCommand command) {
+		CommandSender baseSender = PsudoReflection.getBukkitBasedSender(context.getSource());
+		String[] args = builder.getRemaining().split(" ", -1); // -1 to keep trailing space
+		List<String> completion = executor.onTabComplete(baseSender, command, null, args);
+		if (completion != null) {
+			// offset the builder to the next argument to not be stuck at the beginning
+			int offset = 0;
+			for (int i = 0; i < args.length - 1; i += 1) {
+				offset += args[i].length() + 1; // +1 for the space deleted with split
+			}
+			builder = builder.createOffset(builder.getStart() + offset);
+
+			// no need to check if the completion string starts with the remaining, already filter in onTabComplete
+			for (String str : completion) {
+				builder.suggest(str);
+			}
+		}
+		return builder.buildFuture();
+	}
+
+	public static int getArgumentExecutes(CommandContext<?> context, PsudoCommandExecutor executor, PsudoCommandExecutor.PsudoCommandType commandType) {
+		String[] args = StringArgumentType.getString(context, "psudoargs").split(" ");
+		Object source = context.getSource();
+		CommandSender baseSender = PsudoReflection.getBukkitBasedSender(source);
+		CommandSender sender = PsudoReflection.getBukkitSender(source);
+		if (sender == null) {
+			sender = baseSender;
+		}
+		boolean result = executor.onCommand(baseSender, sender, source, commandType, args);
+		return result ? 1 : 0;
+	}
+
+	// Every <Object> is actually a <CommandListenerWrapper>
+	public static LiteralArgumentBuilder<Object> buildSpigotBrigadierCommand(PsudoCommandExecutor executor, PluginCommand command, PsudoCommandExecutor.PsudoCommandType commandType) {
+		return LiteralArgumentBuilder.literal(command.getName())
+				.executes(context -> {
+					Object source = context.getSource();
+					CommandSender baseSender = PsudoReflection.getBukkitBasedSender(source);
+					baseSender.sendMessage(CommandUtils.EMPTY_COMMAND_ERROR);
+					return 1;
+				})
+				.then(RequiredArgumentBuilder.argument("psudoargs", StringArgumentType.greedyString())
+						.suggests((context, builder) -> getArgumentSuggestion(context, builder, executor, command))
+						.executes(context -> getArgumentExecutes(context, executor, commandType))
+				);
+	}
+
 	/**
 	 * Modify the given String array to concat some arguments in one according
 	 * to the beginning and the end. For example, if : begin and end are double
@@ -28,7 +89,7 @@ public class CommandUtils {
 	 * index is 2
 	 * -> returns ["first", "second", "combine args in one", "last"]
 	 * If index isn't 2, nothing will happen.
-	 *
+	 * <p>
 	 * Begin (resp. end) must be at the beginning (resp. the end) of their
 	 * argument if they represent the beginning (resp. the end) of the new args.
 	 * They are also removed.

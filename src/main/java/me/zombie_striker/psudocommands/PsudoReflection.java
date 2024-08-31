@@ -18,7 +18,9 @@ import java.util.*;
 // https://mappings.dev/1.21.1/net/minecraft/commands/CommandSourceStack.html
 public class PsudoReflection {
 
-    private static final boolean USING_PAPER;
+    public static final boolean USING_PAPER;
+
+    public static final int VERSION, VERSION_MINOR;
 
     // CLASS NAME : Spigot: CommandListenerWrapper, Mojang: CommandSourceStack
     private static final Method GET_ENTITY_METHOD, // Method getEntity() (for both Spigot and Mojang)
@@ -51,8 +53,8 @@ public class PsudoReflection {
     static {
         // Example value of getBukkitVersion: 1.20.1-R0.1-SNAPSHOT
         String[] versions = Bukkit.getBukkitVersion().split("-")[0].split("\\.");
-        int version = Integer.parseInt(versions[1]);
-        int versionMinor = versions.length == 2 ? 0 : Integer.parseInt(versions[2]);
+        VERSION = Integer.parseInt(versions[1]);
+        VERSION_MINOR = versions.length == 2 ? 0 : Integer.parseInt(versions[2]);
         try {
             Class<?> commandListenerWrapper, commandListener, argumentEntity, entitySelector,
                     localCoordinates, vec3, minecraftServer, commands;
@@ -80,18 +82,18 @@ public class PsudoReflection {
             Class<?> craftServer = ReflectionUtil.obcClass("CraftServer");
 
             // distinct obfuscated names
-            if (version >= 21) {
+            if (VERSION >= 21) {
                 GET_ENTITY_METHOD = getMethod(commandListenerWrapper, "f");
                 GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "aH");
-            } else if (version >= 20) {
+            } else if (VERSION == 20) {
                 GET_ENTITY_METHOD = getMethod(commandListenerWrapper, "f");
-                if (versionMinor <= 2) GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "aC");
-                else if (versionMinor <= 4) GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "aE");
+                if (VERSION_MINOR <= 2) GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "aC");
+                else if (VERSION_MINOR <= 4) GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "aE");
                 else GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "aH");
-            } else if (version == 19) {
-                GET_ENTITY_METHOD = getMethod(commandListenerWrapper, versionMinor <= 2 ? "g" : "f");
-                GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, versionMinor == 3 ? "aB" : "aC");
-            } else if (version == 18) {
+            } else if (VERSION == 19) {
+                GET_ENTITY_METHOD = getMethod(commandListenerWrapper, VERSION_MINOR <= 2 ? "g" : "f");
+                GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, VERSION_MINOR == 3 ? "aB" : "aC");
+            } else if (VERSION == 18) {
                 GET_ENTITY_METHOD = getMethod(commandListenerWrapper, "f");
                 GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "aA");
             } else {
@@ -99,7 +101,7 @@ public class PsudoReflection {
                 GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "getCommandDispatcher");
             }
             // same obfuscated names
-            if (version > 17) {
+            if (VERSION > 17) {
                 ENTITY_ARGUMENT_ENTITIES_METHOD = getMethod(argumentEntity, "b");
                 ENTITY_SELECTOR_FIND_ENTITIES_METHOD = getMethod(entitySelector, "b", commandListenerWrapper);
                 GET_X = getMethod(vec3, "a");
@@ -124,60 +126,81 @@ public class PsudoReflection {
             LOCAL_COORD_CONSTRUCTOR = localCoordinates.getConstructor(double.class, double.class, double.class);
             LOCAL_COORD_CONSTRUCTOR.setAccessible(true);
 
-            // If getBukkitLocation doesn't exist (i.e. server is not running on Paper), use obfuscated methods
-            USING_PAPER = Arrays.stream(commandListenerWrapper.getDeclaredMethods())
-                    .map(Method::getName)
-                    .anyMatch(m -> m.equals("getBukkitLocation"));
+            boolean paper = true;
+            try {
+                // TODO: find a more rebust way to detect Paper
+                Class.forName("com.destroystokyo.paper.entity.Pathfinder");
+            } catch (ClassNotFoundException e) {
+                paper = false;
+            }
+            USING_PAPER = paper;
 
-            if (USING_PAPER) {
+            /*if (USING_PAPER) {
                 ENTITY_ARGUMENT_PARSE_METHOD = getMethod(argumentEntity, "parse", StringReader.class, boolean.class); // craftbukkit method (without boolean, obf name is a)
-                GET_BUKKIT_LOCATION_METHOD = getMethod(commandListenerWrapper, "getBukkitLocation"); // Paper method
+                GET_BUKKIT_LOCATION_METHOD = getMethod(commandListenerWrapper, "getBukkitLocation"); // TODO: Paper method, changed from 1.20.5 to the paper brigadier api CommandSourceStack
                 GET_POSITION = null;
                 GET_LEVEL = null;
                 GET_ROTATION = null;
                 SERVER_LEVEL_GET_WORLD = null;
                 X = null;
                 Y = null;
+            } else {*/
+            if (VERSION >= 21) {
+                ENTITY_ARGUMENT_PARSE_METHOD = getMethod(argumentEntity, "a", StringReader.class, boolean.class); // added natively with boolean in 1.21
             } else {
-                if (version >= 21) {
-                    ENTITY_ARGUMENT_PARSE_METHOD = getMethod(argumentEntity, "a", StringReader.class, boolean.class); // added natively
-                } else {
-                    ENTITY_ARGUMENT_PARSE_METHOD = getMethod(argumentEntity, "parse", StringReader.class, boolean.class);
-                }
-                GET_BUKKIT_LOCATION_METHOD = null;
-                Class<?> level, vec2;
-                if (version > 16) {
-                    level = ReflectionUtil.mcClass("world.level.World");
-                    vec2 = ReflectionUtil.mcClass("world.phys.Vec2F");
-                } else {
-                    level = ReflectionUtil.nmsClass("World");
-                    vec2 = ReflectionUtil.nmsClass("Vec2F");
-                }
-                SERVER_LEVEL_GET_WORLD = getMethod(level, "getWorld");
-                X = vec2.getDeclaredField("i");
-                Y = vec2.getDeclaredField("j");
-                X.setAccessible(true);
-                Y.setAccessible(true);
-                if (version >= 20) {
-                    GET_POSITION = getMethod(commandListenerWrapper, "d");
-                    GET_LEVEL = getMethod(commandListenerWrapper, "e");
-                    GET_ROTATION = getMethod(commandListenerWrapper, "k");
-                } else if (version == 19) {
-                    GET_POSITION = getMethod(commandListenerWrapper, versionMinor <= 2 ? "e" : "d");
-                    GET_LEVEL = getMethod(commandListenerWrapper, versionMinor <= 2 ? "f" : "e");
-                    GET_ROTATION = getMethod(commandListenerWrapper, versionMinor <= 2 ? "l" : "k");
-                } else if (version == 18) {
-                    GET_POSITION = getMethod(commandListenerWrapper, "d");
-                    GET_LEVEL = getMethod(commandListenerWrapper, "e");
-                    GET_ROTATION = getMethod(commandListenerWrapper, "i");
-                } else {
-                    GET_POSITION = getMethod(commandListenerWrapper, "getPosition");
-                    GET_LEVEL = getMethod(commandListenerWrapper, "getWorld");
-                    GET_ROTATION = getMethod(commandListenerWrapper, "i");
-                }
+                ENTITY_ARGUMENT_PARSE_METHOD = getMethod(argumentEntity, "parse", StringReader.class, boolean.class); // craftbukkit method (without boolean, obf name is a)
+            }
+            GET_BUKKIT_LOCATION_METHOD = null;
+            Class<?> level, vec2;
+            if (VERSION > 16) {
+                level = ReflectionUtil.mcClass("world.level.World");
+                vec2 = ReflectionUtil.mcClass("world.phys.Vec2F");
+            } else {
+                level = ReflectionUtil.nmsClass("World");
+                vec2 = ReflectionUtil.nmsClass("Vec2F");
+            }
+            SERVER_LEVEL_GET_WORLD = getMethod(level, "getWorld");
+            X = vec2.getDeclaredField("i");
+            Y = vec2.getDeclaredField("j");
+            X.setAccessible(true);
+            Y.setAccessible(true);
+            if (VERSION >= 20) {
+                GET_POSITION = getMethod(commandListenerWrapper, "d");
+                GET_LEVEL = getMethod(commandListenerWrapper, "e");
+                GET_ROTATION = getMethod(commandListenerWrapper, "k");
+            } else if (VERSION == 19) {
+                GET_POSITION = getMethod(commandListenerWrapper, VERSION_MINOR <= 2 ? "e" : "d");
+                GET_LEVEL = getMethod(commandListenerWrapper, VERSION_MINOR <= 2 ? "f" : "e");
+                GET_ROTATION = getMethod(commandListenerWrapper, VERSION_MINOR <= 2 ? "l" : "k");
+            } else if (VERSION == 18) {
+                GET_POSITION = getMethod(commandListenerWrapper, "d");
+                GET_LEVEL = getMethod(commandListenerWrapper, "e");
+                GET_ROTATION = getMethod(commandListenerWrapper, "i");
+            } else {
+                GET_POSITION = getMethod(commandListenerWrapper, "getPosition");
+                GET_LEVEL = getMethod(commandListenerWrapper, "getWorld");
+                GET_ROTATION = getMethod(commandListenerWrapper, "i");
             }
         } catch (ReflectiveOperationException e) {
             throw new ExceptionInInitializerError(e);
+        }
+    }
+
+    /**
+     * Returns true if the running version is below or is the Minecraft version given in input, e.g. "1.21.1".
+     */
+    public static boolean runningBelowVersion(String testedVersion) {
+        String[] parts = testedVersion.split("\\.");
+
+        int inputVersion = Integer.parseInt(parts[1]);
+        int inputVersionMinor = parts.length == 2 ? 0 : Integer.parseInt(parts[2]);
+
+        if (VERSION < inputVersion) {
+            return true;
+        } else if (VERSION > inputVersion) {
+            return false;
+        } else {
+            return VERSION_MINOR <= inputVersionMinor;
         }
     }
 
@@ -226,7 +249,7 @@ public class PsudoReflection {
         Objects.requireNonNull(commandWrapperListener, "commandWrapperListener");
 
         try {
-            if (USING_PAPER) {
+            if (GET_BUKKIT_LOCATION_METHOD != null) { // todo paper usage ?
                 // problem with local coordinates that does not work because pos has nul yaw & pitch. We use local coordinates
                 // with the commandWrapperListener (cf. getLocalCoord) to avoid to get rotation and anchor by hand.
                 return (Location) GET_BUKKIT_LOCATION_METHOD.invoke(commandWrapperListener);
@@ -316,7 +339,7 @@ public class PsudoReflection {
         }
 
         if (USING_PAPER) {
-            DispatchCommandPaperHook.dispatchCommandPaper(sender, commandstr, command, sentCommandLabel, args);
+            PaperCommandDispatcher.dispatchCommandPaper(sender, commandstr, command, sentCommandLabel, args);
         } else {
             try {
                 //command.timings.startTiming();
@@ -345,7 +368,7 @@ public class PsudoReflection {
             } catch (Throwable ex) {
                 throw new CommandException("Unhandled exception executing command '" + label + "' in plugin " + pluginCommand.getPlugin().getDescription().getFullName(), ex);
             }
-            if (!success && pluginCommand.getUsage().length() > 0) {
+            if (!success && !pluginCommand.getUsage().isEmpty()) {
                 for (String line : pluginCommand.getUsage().replace("<command>", label).split("\n")) {
                     sender.sendMessage(line);
                 }

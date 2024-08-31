@@ -58,7 +58,7 @@ public class PsudoCommandExecutor implements CommandExecutor, TabCompleter {
 
     boolean onCommand(CommandSender baseSender, CommandSender sender, Object commandWrapperListener, PsudoCommandType type, String[] args) {
         if (args.length == 0) {
-            baseSender.sendMessage(ChatColor.GRAY + "[PsudoCommands] Please provide a valid command.");
+            baseSender.sendMessage(CommandUtils.EMPTY_COMMAND_ERROR);
             return false;
         }
 
@@ -161,7 +161,7 @@ public class PsudoCommandExecutor implements CommandExecutor, TabCompleter {
                     cmd.append(" ");
                 }
             }
-            if (temps.size() > 0) {
+            if (!temps.isEmpty()) {
                 cmds.addAll(temps);
                 temps.clear();
             }

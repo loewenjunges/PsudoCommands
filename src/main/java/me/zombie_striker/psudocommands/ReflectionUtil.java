@@ -61,7 +61,4 @@ final class ReflectionUtil {
             throw new RuntimeException("Failed to determine Minecraft version", ex);
         }
     }
-
-    private ReflectionUtil() {}
-
 }

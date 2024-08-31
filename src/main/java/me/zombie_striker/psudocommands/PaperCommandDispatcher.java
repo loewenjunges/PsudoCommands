@@ -9,7 +9,7 @@ import com.destroystokyo.paper.exception.ServerCommandException;
 
 import java.util.Arrays;
 
-public class DispatchCommandPaperHook {
+public class PaperCommandDispatcher {
 
     public static void dispatchCommandPaper(CommandSender sender, String commandstr, Command command, String sentCommandLabel, String[] args) {
         //if (command.timings == null) {
