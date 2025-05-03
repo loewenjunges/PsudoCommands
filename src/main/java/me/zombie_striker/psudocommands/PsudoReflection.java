@@ -18,10 +18,6 @@ import java.util.*;
 // https://mappings.dev/1.21.1/net/minecraft/commands/CommandSourceStack.html
 public class PsudoReflection {
 
-    public static final boolean USING_PAPER;
-
-    public static final int VERSION, VERSION_MINOR;
-
     // CLASS NAME : Spigot: CommandListenerWrapper, Mojang: CommandSourceStack
     private static final Method GET_ENTITY_METHOD, // Method getEntity() (for both Spigot and Mojang)
                                 GET_BUKKIT_BASED_SENDER_METHOD, // CraftBukkit method: getBukkitSender()
@@ -53,10 +49,6 @@ public class PsudoReflection {
     private static final Field ENTITY_COMMAND_SOURCE; // CommandSource field from net.minecraft.world.entity.Entity, only used from 1.21.3
 
     static {
-        // Example value of getBukkitVersion: 1.20.1-R0.1-SNAPSHOT
-        String[] versions = Bukkit.getBukkitVersion().split("-")[0].split("\\.");
-        VERSION = Integer.parseInt(versions[1]);
-        VERSION_MINOR = versions.length == 2 ? 0 : Integer.parseInt(versions[2]);
         try {
             Class<?> commandListenerWrapper, commandListener, argumentEntity, entitySelector,
                     localCoordinates, vec3, minecraftServer, commands, serverPlayerClass, entityClass;
@@ -88,43 +80,47 @@ public class PsudoReflection {
             Class<?> craftServer = ReflectionUtil.obcClass("CraftServer");
 
             // distinct obfuscated names
-            if (VERSION >= 21) {
-                GET_ENTITY_METHOD = getMethod(commandListenerWrapper, "f");
-                if (VERSION == 21 && VERSION_MINOR <= 2) GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "aH");
-                else GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "aG");
-            } else if (VERSION == 20) {
-                GET_ENTITY_METHOD = getMethod(commandListenerWrapper, "f");
-                if (VERSION_MINOR <= 2) GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "aC");
-                else if (VERSION_MINOR <= 4) GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "aE");
-                else GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "aH");
-            } else if (VERSION == 19) {
-                GET_ENTITY_METHOD = getMethod(commandListenerWrapper, VERSION_MINOR <= 2 ? "g" : "f");
-                GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, VERSION_MINOR == 3 ? "aB" : "aC");
-            } else if (VERSION == 18) {
-                GET_ENTITY_METHOD = getMethod(commandListenerWrapper, "f");
-                GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "aA");
+            if (ReflectionUtil.VERSION >= 21) {
+                GET_ENTITY_METHOD = ReflectionUtil.getMethod(commandListenerWrapper, "f");
+                if (ReflectionUtil.VERSION == 21 && ReflectionUtil.VERSION_MINOR <= 2) GET_COMMANDS_DISPATCHER = ReflectionUtil.getMethod(minecraftServer, "aH");
+                else GET_COMMANDS_DISPATCHER = ReflectionUtil.getMethod(minecraftServer, "aG");
+            } else if (ReflectionUtil.VERSION == 20) {
+                GET_ENTITY_METHOD = ReflectionUtil.getMethod(commandListenerWrapper, "f");
+                if (ReflectionUtil.VERSION_MINOR <= 2) GET_COMMANDS_DISPATCHER = ReflectionUtil.getMethod(minecraftServer, "aC");
+                else if (ReflectionUtil.VERSION_MINOR <= 4) GET_COMMANDS_DISPATCHER = ReflectionUtil.getMethod(minecraftServer, "aE");
+                else GET_COMMANDS_DISPATCHER = ReflectionUtil.getMethod(minecraftServer, "aH");
+            } else if (ReflectionUtil.VERSION == 19) {
+                GET_ENTITY_METHOD = ReflectionUtil.getMethod(commandListenerWrapper, ReflectionUtil.VERSION_MINOR <= 2 ? "g" : "f");
+                GET_COMMANDS_DISPATCHER = ReflectionUtil.getMethod(minecraftServer, ReflectionUtil.VERSION_MINOR == 3 ? "aB" : "aC");
+            } else if (ReflectionUtil.VERSION == 18) {
+                GET_ENTITY_METHOD = ReflectionUtil.getMethod(commandListenerWrapper, "f");
+                GET_COMMANDS_DISPATCHER = ReflectionUtil.getMethod(minecraftServer, "aA");
             } else {
-                GET_ENTITY_METHOD = getMethod(commandListenerWrapper, "getEntity");
-                GET_COMMANDS_DISPATCHER = getMethod(minecraftServer, "getCommandDispatcher");
+                GET_ENTITY_METHOD = ReflectionUtil.getMethod(commandListenerWrapper, "getEntity");
+                GET_COMMANDS_DISPATCHER = ReflectionUtil.getMethod(minecraftServer, "getCommandDispatcher");
             }
 
             // same obfuscated names
-            if (VERSION > 17) {
-                ENTITY_ARGUMENT_ENTITIES_METHOD = getMethod(argumentEntity, "b");
-                ENTITY_SELECTOR_FIND_ENTITIES_METHOD = getMethod(entitySelector, "b", commandListenerWrapper);
-                GET_X = getMethod(vec3, "a");
-                GET_Y = getMethod(vec3, "b");
-                GET_Z = getMethod(vec3, "c");
+            if (ReflectionUtil.VERSION > 17) {
+                ENTITY_ARGUMENT_ENTITIES_METHOD = ReflectionUtil.getMethod(argumentEntity, "b");
+                ENTITY_SELECTOR_FIND_ENTITIES_METHOD = ReflectionUtil.getMethod(entitySelector, "b", commandListenerWrapper);
+                GET_X = ReflectionUtil.getMethod(vec3, "a");
+                GET_Y = ReflectionUtil.getMethod(vec3, "b");
+                GET_Z = ReflectionUtil.getMethod(vec3, "c");
             } else {
                 ENTITY_ARGUMENT_ENTITIES_METHOD = argumentEntity.getDeclaredMethod("multipleEntities");
                 ENTITY_SELECTOR_FIND_ENTITIES_METHOD = entitySelector.getDeclaredMethod("getEntities", commandListenerWrapper);
-                GET_X = getMethod(vec3, "getX");
-                GET_Y = getMethod(vec3, "getY");
-                GET_Z = getMethod(vec3, "getZ");
+                GET_X = ReflectionUtil.getMethod(vec3, "getX");
+                GET_Y = ReflectionUtil.getMethod(vec3, "getY");
+                GET_Z = ReflectionUtil.getMethod(vec3, "getZ");
             }
 
-            if (!runningBelowVersion("1.21.2")) {
-                SERVER_PLAYER_COMMAND_SOURCE = getMethod(serverPlayerClass, "z");
+            if (!ReflectionUtil.runningBelowVersion("1.21.2")) {
+                if (ReflectionUtil.runningBelowVersion("1.21.4")) {
+                    SERVER_PLAYER_COMMAND_SOURCE = ReflectionUtil.getMethod(serverPlayerClass, "z");
+                } else {
+                    SERVER_PLAYER_COMMAND_SOURCE = ReflectionUtil.getMethod(serverPlayerClass, "y");
+                }
                 ENTITY_COMMAND_SOURCE = entityClass.getDeclaredField("commandSource");
                 ENTITY_COMMAND_SOURCE.setAccessible(true);
             } else {
@@ -132,26 +128,17 @@ public class PsudoReflection {
                 ENTITY_COMMAND_SOURCE = null;
             }
 
-            LOCAL_COORD_GET_POSITION_METHOD = getMethod(localCoordinates, "a", commandListenerWrapper);
-            GET_DISPATCHER = getMethod(commands, "a");
-            GET_BUKKIT_SENDER_METHOD = getMethod(commandListener, "getBukkitSender", commandListenerWrapper); // craftbukkit method
-            GET_BUKKIT_BASED_SENDER_METHOD = getMethod(commandListenerWrapper, "getBukkitSender"); // craftbukkit method
-            GET_LISTENER = getMethod(vanillaCommandWrapper, "getListener", CommandSender.class); // not NMS, craftbukkit package
-            GET_KNOW_COMMANDS_METHOD = getMethod(craftCommandMap, "getKnownCommands"); // not NMS, craftbukkit package
-            GET_COMMAND_MAP_METHOD = getMethod(craftServer, "getCommandMap"); // not NMS, craftbukkit package
-            GET_SERVER = getMethod(craftServer, "getServer"); // not NMS, craftbukkit package
+            LOCAL_COORD_GET_POSITION_METHOD = ReflectionUtil.getMethod(localCoordinates, "a", commandListenerWrapper);
+            GET_DISPATCHER = ReflectionUtil.getMethod(commands, "a");
+            GET_BUKKIT_SENDER_METHOD = ReflectionUtil.getMethod(commandListener, "getBukkitSender", commandListenerWrapper); // craftbukkit method
+            GET_BUKKIT_BASED_SENDER_METHOD = ReflectionUtil.getMethod(commandListenerWrapper, "getBukkitSender"); // craftbukkit method
+            GET_LISTENER = ReflectionUtil.getMethod(vanillaCommandWrapper, "getListener", CommandSender.class); // not NMS, craftbukkit package
+            GET_KNOW_COMMANDS_METHOD = ReflectionUtil.getMethod(craftCommandMap, "getKnownCommands"); // not NMS, craftbukkit package
+            GET_COMMAND_MAP_METHOD = ReflectionUtil.getMethod(craftServer, "getCommandMap"); // not NMS, craftbukkit package
+            GET_SERVER = ReflectionUtil.getMethod(craftServer, "getServer"); // not NMS, craftbukkit package
 
             LOCAL_COORD_CONSTRUCTOR = localCoordinates.getConstructor(double.class, double.class, double.class);
             LOCAL_COORD_CONSTRUCTOR.setAccessible(true);
-
-            boolean paper = true;
-            try {
-                // TODO: find a more rebust way to detect Paper
-                Class.forName("com.destroystokyo.paper.entity.Pathfinder");
-            } catch (ClassNotFoundException e) {
-                paper = false;
-            }
-            USING_PAPER = paper;
 
             /*if (USING_PAPER) {
                 ENTITY_ARGUMENT_PARSE_METHOD = getMethod(argumentEntity, "parse", StringReader.class, boolean.class); // craftbukkit method (without boolean, obf name is a)
@@ -163,63 +150,50 @@ public class PsudoReflection {
                 X = null;
                 Y = null;
             } else {*/
-            if (!runningBelowVersion("1.21.0")) {
-                ENTITY_ARGUMENT_PARSE_METHOD = getMethod(argumentEntity, "a", StringReader.class, boolean.class); // added natively with boolean in 1.21.1
+            if (!ReflectionUtil.runningBelowVersion("1.21.0")) {
+                ENTITY_ARGUMENT_PARSE_METHOD = ReflectionUtil.getMethod(argumentEntity, "a", StringReader.class, boolean.class); // added natively with boolean in 1.21.1
             } else {
-                ENTITY_ARGUMENT_PARSE_METHOD = getMethod(argumentEntity, "parse", StringReader.class, boolean.class); // craftbukkit method (without boolean, obf name is a)
+                ENTITY_ARGUMENT_PARSE_METHOD = ReflectionUtil.getMethod(argumentEntity, "parse", StringReader.class, boolean.class); // craftbukkit method (without boolean, obf name is a)
             }
             GET_BUKKIT_LOCATION_METHOD = null;
             Class<?> level, vec2;
-            if (VERSION > 16) {
+            if (ReflectionUtil.VERSION > 16) {
                 level = ReflectionUtil.mcClass("world.level.World");
                 vec2 = ReflectionUtil.mcClass("world.phys.Vec2F");
             } else {
                 level = ReflectionUtil.nmsClass("World");
                 vec2 = ReflectionUtil.nmsClass("Vec2F");
             }
-            SERVER_LEVEL_GET_WORLD = getMethod(level, "getWorld");
-            X = vec2.getDeclaredField("i");
-            Y = vec2.getDeclaredField("j");
+            SERVER_LEVEL_GET_WORLD = ReflectionUtil.getMethod(level, "getWorld");
+            if (ReflectionUtil.runningBelowVersion("1.21.4")) {
+                X = vec2.getDeclaredField("i");
+                Y = vec2.getDeclaredField("j");
+            } else {
+                X = vec2.getDeclaredField("j");
+                Y = vec2.getDeclaredField("k");
+            }
             X.setAccessible(true);
             Y.setAccessible(true);
-            if (VERSION >= 20) {
-                GET_POSITION = getMethod(commandListenerWrapper, "d");
-                GET_LEVEL = getMethod(commandListenerWrapper, "e");
-                GET_ROTATION = getMethod(commandListenerWrapper, "k");
-            } else if (VERSION == 19) {
-                GET_POSITION = getMethod(commandListenerWrapper, VERSION_MINOR <= 2 ? "e" : "d");
-                GET_LEVEL = getMethod(commandListenerWrapper, VERSION_MINOR <= 2 ? "f" : "e");
-                GET_ROTATION = getMethod(commandListenerWrapper, VERSION_MINOR <= 2 ? "l" : "k");
-            } else if (VERSION == 18) {
-                GET_POSITION = getMethod(commandListenerWrapper, "d");
-                GET_LEVEL = getMethod(commandListenerWrapper, "e");
-                GET_ROTATION = getMethod(commandListenerWrapper, "i");
+            if (ReflectionUtil.VERSION >= 20) {
+                GET_POSITION = ReflectionUtil.getMethod(commandListenerWrapper, "d");
+                GET_LEVEL = ReflectionUtil.getMethod(commandListenerWrapper, "e");
+                GET_ROTATION = ReflectionUtil.getMethod(commandListenerWrapper, "k");
+            } else if (ReflectionUtil.VERSION == 19) {
+                GET_POSITION = ReflectionUtil.getMethod(commandListenerWrapper, ReflectionUtil.VERSION_MINOR <= 2 ? "e" : "d");
+                GET_LEVEL = ReflectionUtil.getMethod(commandListenerWrapper, ReflectionUtil.VERSION_MINOR <= 2 ? "f" : "e");
+                GET_ROTATION = ReflectionUtil.getMethod(commandListenerWrapper, ReflectionUtil.VERSION_MINOR <= 2 ? "l" : "k");
+            } else if (ReflectionUtil.VERSION == 18) {
+                GET_POSITION = ReflectionUtil.getMethod(commandListenerWrapper, "d");
+                GET_LEVEL = ReflectionUtil.getMethod(commandListenerWrapper, "e");
+                GET_ROTATION = ReflectionUtil.getMethod(commandListenerWrapper, "i");
             } else {
-                GET_POSITION = getMethod(commandListenerWrapper, "getPosition");
-                GET_LEVEL = getMethod(commandListenerWrapper, "getWorld");
-                GET_ROTATION = getMethod(commandListenerWrapper, "i");
+                GET_POSITION = ReflectionUtil.getMethod(commandListenerWrapper, "getPosition");
+                GET_LEVEL = ReflectionUtil.getMethod(commandListenerWrapper, "getWorld");
+                GET_ROTATION = ReflectionUtil.getMethod(commandListenerWrapper, "i");
             }
         } catch (ReflectiveOperationException e) {
             throw new ExceptionInInitializerError(e);
         }
-    }
-
-    /**
-     * Returns true if the running version is below or is the Minecraft version given in input, e.g. "1.21.1".
-     */
-    public static boolean runningBelowVersion(String testedVersion) {
-        String[] parts = testedVersion.split("\\.");
-
-        int inputVersion = Integer.parseInt(parts[1]);
-        int inputVersionMinor = parts.length == 2 ? 0 : Integer.parseInt(parts[2]);
-
-        return VERSION < inputVersion || (VERSION == inputVersion && VERSION_MINOR <= inputVersionMinor);
-    }
-
-    private static Method getMethod(Class<?> clazz, String name, Class<?>... params) throws NoSuchMethodException {
-        Method method = clazz.getDeclaredMethod(name, params);
-        method.setAccessible(true);
-        return method;
     }
 
     public static CommandDispatcher<Object> getCommandDispatcher() {
@@ -248,7 +222,7 @@ public class PsudoReflection {
     }
 
     public static Object getCommandSource(Object entity) {
-        if (runningBelowVersion("1.21.2")) {
+        if (ReflectionUtil.runningBelowVersion("1.21.2")) {
             return entity;
         } else{
             // From 1.21.3, both net.minecraft.world.entity.Entity and net.minecraft.server.level.ServerPlayer do not
@@ -371,7 +345,7 @@ public class PsudoReflection {
             return false;
         }
 
-        if (USING_PAPER) {
+        if (ReflectionUtil.USING_PAPER) {
             PaperCommandDispatcher.dispatchCommandPaper(sender, commandstr, command, sentCommandLabel, args);
         } else {
             try {

@@ -17,7 +17,7 @@ public class PsudoCommands extends JavaPlugin {
                 getCommand("psudoasop"), getCommand("psudoasconsole") };
 
         try {
-            if (!PsudoReflection.USING_PAPER || PsudoReflection.runningBelowVersion("1.20.4")) { // Using Spigot or previous Paper command behavior
+            if (!ReflectionUtil.USING_PAPER || ReflectionUtil.runningBelowVersion("1.20.4")) { // Using Spigot or previous Paper command behavior
                 getLogger().log(Level.INFO, "Because you are running a Spigot build, or 1.20.4 or before, registering commands through old Brigadier !");
 
                 for (PluginCommand command : commands) {
