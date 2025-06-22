@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>me.zombie_striker</groupId>
 	<artifactId>PsudoCommands</artifactId>
-	<version>1.0.39</version>
+	<version>1.0.40</version>
 
 	<repositories>
 		<repository>
@@ -70,7 +70,7 @@
 		<dependency>
 			<groupId>io.papermc.paper</groupId>
 			<artifactId>paper-api</artifactId>
-			<version>1.21.5-R0.1-SNAPSHOT</version>
+			<version>1.21.6-R0.1-SNAPSHOT</version>
 			<scope>provided</scope>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
