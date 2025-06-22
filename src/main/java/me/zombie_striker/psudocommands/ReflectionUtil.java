@@ -42,6 +42,24 @@ final class ReflectionUtil {
         return ReflectionUtil.VERSION < inputVersion || (ReflectionUtil.VERSION == inputVersion && ReflectionUtil.VERSION_MINOR <= inputVersionMinor);
     }
 
+    public static boolean runningAboveVersion(String testedVersion) {
+        String[] parts = testedVersion.split("\\.");
+
+        int inputVersion = Integer.parseInt(parts[1]);
+        int inputVersionMinor = parts.length == 2 ? 0 : Integer.parseInt(parts[2]);
+
+        return ReflectionUtil.VERSION > inputVersion || (ReflectionUtil.VERSION == inputVersion && ReflectionUtil.VERSION_MINOR >= inputVersionMinor);
+    }
+
+    public static boolean runningExactVersion(String testedVersion) {
+        String[] parts = testedVersion.split("\\.");
+
+        int inputVersion = Integer.parseInt(parts[1]);
+        int inputVersionMinor = parts.length == 2 ? 0 : Integer.parseInt(parts[2]);
+
+        return ReflectionUtil.VERSION == inputVersion && ReflectionUtil.VERSION_MINOR == inputVersionMinor;
+    }
+
     public static Method getMethod(Class<?> clazz, String name, Class<?>... params) throws NoSuchMethodException {
         Method method = clazz.getDeclaredMethod(name, params);
         method.setAccessible(true);

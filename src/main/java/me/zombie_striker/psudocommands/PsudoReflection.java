@@ -115,11 +115,11 @@ public class PsudoReflection {
                 GET_Z = ReflectionUtil.getMethod(vec3, "getZ");
             }
 
-            if (!ReflectionUtil.runningBelowVersion("1.21.2")) {
-                if (ReflectionUtil.runningBelowVersion("1.21.4")) {
-                    SERVER_PLAYER_COMMAND_SOURCE = ReflectionUtil.getMethod(serverPlayerClass, "z");
-                } else {
+            if (!ReflectionUtil.runningAboveVersion("1.21.3")) {
+                if (ReflectionUtil.runningExactVersion("1.21.5")) {
                     SERVER_PLAYER_COMMAND_SOURCE = ReflectionUtil.getMethod(serverPlayerClass, "y");
+                } else {
+                    SERVER_PLAYER_COMMAND_SOURCE = ReflectionUtil.getMethod(serverPlayerClass, "z");
                 }
                 ENTITY_COMMAND_SOURCE = entityClass.getDeclaredField("commandSource");
                 ENTITY_COMMAND_SOURCE.setAccessible(true);
@@ -150,7 +150,7 @@ public class PsudoReflection {
                 X = null;
                 Y = null;
             } else {*/
-            if (!ReflectionUtil.runningBelowVersion("1.21.0")) {
+            if (ReflectionUtil.runningAboveVersion("1.21.1")) {
                 ENTITY_ARGUMENT_PARSE_METHOD = ReflectionUtil.getMethod(argumentEntity, "a", StringReader.class, boolean.class); // added natively with boolean in 1.21.1
             } else {
                 ENTITY_ARGUMENT_PARSE_METHOD = ReflectionUtil.getMethod(argumentEntity, "parse", StringReader.class, boolean.class); // craftbukkit method (without boolean, obf name is a)
