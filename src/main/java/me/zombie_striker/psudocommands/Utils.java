@@ -1,21 +1,19 @@
 package me.zombie_striker.psudocommands;
 
-import com.mojang.brigadier.arguments.StringArgumentType;
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.suggestion.Suggestions;
-import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import net.minecraft.commands.CommandSourceStack;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.PluginCommand;
+import org.bukkit.command.*;
+import org.bukkit.util.Vector;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 
-public class CommandUtils {
+public class Utils {
 
 	public static final String EMPTY_COMMAND_ERROR = ChatColor.GRAY + "[PsudoCommands] Please provide a valid command.";
 
@@ -31,54 +29,6 @@ public class CommandUtils {
 
 	public static boolean isSelectorStartWithTag(String arg) {
 		return Pattern.matches("@[aerps]\\[", arg);
-	}
-
-	// SuggestionProvider<CommandListenerWrapper>
-	public static CompletableFuture<Suggestions> getArgumentSuggestion(CommandContext<?> context, SuggestionsBuilder builder, PsudoCommandExecutor executor, PluginCommand command) {
-		CommandSender baseSender = PsudoReflection.getBukkitBasedSender(context.getSource());
-		String[] args = builder.getRemaining().split(" ", -1); // -1 to keep trailing space
-		List<String> completion = executor.onTabComplete(baseSender, command, null, args);
-		if (completion != null) {
-			// offset the builder to the next argument to not be stuck at the beginning
-			int offset = 0;
-			for (int i = 0; i < args.length - 1; i += 1) {
-				offset += args[i].length() + 1; // +1 for the space deleted with split
-			}
-			builder = builder.createOffset(builder.getStart() + offset);
-
-			// no need to check if the completion string starts with the remaining, already filter in onTabComplete
-			for (String str : completion) {
-				builder.suggest(str);
-			}
-		}
-		return builder.buildFuture();
-	}
-
-	public static int getArgumentExecutes(CommandContext<?> context, PsudoCommandExecutor executor, PsudoCommandExecutor.PsudoCommandType commandType) {
-		String[] args = StringArgumentType.getString(context, "psudoargs").split(" ");
-		Object source = context.getSource();
-		CommandSender baseSender = PsudoReflection.getBukkitBasedSender(source);
-		CommandSender sender = PsudoReflection.getBukkitSender(source);
-		if (sender == null) {
-			sender = baseSender;
-		}
-		boolean result = executor.onCommand(baseSender, sender, source, commandType, args);
-		return result ? 1 : 0;
-	}
-
-	// Every <Object> is actually a <CommandListenerWrapper>
-	public static LiteralArgumentBuilder<Object> buildSpigotBrigadierCommand(PsudoCommandExecutor executor, PluginCommand command, PsudoCommandExecutor.PsudoCommandType commandType) {
-		return LiteralArgumentBuilder.literal(command.getName())
-				.executes(context -> {
-					Object source = context.getSource();
-					CommandSender baseSender = PsudoReflection.getBukkitBasedSender(source);
-					baseSender.sendMessage(CommandUtils.EMPTY_COMMAND_ERROR);
-					return 1;
-				})
-				.then(RequiredArgumentBuilder.argument("psudoargs", StringArgumentType.greedyString())
-						.suggests((context, builder) -> getArgumentSuggestion(context, builder, executor, command))
-						.executes(context -> getArgumentExecutes(context, executor, commandType))
-				);
 	}
 
 	/**
@@ -100,7 +50,7 @@ public class CommandUtils {
 	 * @param sep The separator, often a space.
 	 * @return A new String array or the same reference as the given array.
 	 */
-	public static String[] combineArgs(String[] args, int index, String begin, String end, String sep) {
+	public static String[] combineArgs(final @NotNull String[] args, final int index, final @NotNull String begin, final @NotNull String end, final @NotNull String sep) {
 		if (index >= args.length) {
 			return args;
 		}
@@ -161,7 +111,7 @@ public class CommandUtils {
 	 * @param firstCoord Is str the first coordinate of the three.
 	 * @return True if str is a relative coordinate
 	 */
-	public static boolean isRelativeCoord(String str, boolean firstCoord) {
+	public static boolean isRelativeCoord(final @NotNull String str, final boolean firstCoord) {
 		// return true if it is a used coordinated like ~3.4 or ^40 or 3.1 ...
 		if(str.startsWith("~") || str.startsWith("^")) {
 			return str.length() == 1 || isDouble(str.substring(1));
@@ -180,7 +130,7 @@ public class CommandUtils {
 	 * @param origin The origin location for relative
 	 * @return The arrival location
 	 */
-	public static Location getRelativeCoord(String x, String y, String z, Location origin) {
+	public static Location getRelativeCoord(final @NotNull String x, final @NotNull String y, final @NotNull String z, final @NotNull Location origin) {
 		Location arrival = origin.clone();
 		arrival.setX(x.startsWith("~") ? arrival.getX() + getCoordinate(x) : Double.parseDouble(x));
 		arrival.setY(y.startsWith("~") ? arrival.getY() + getCoordinate(y) : Double.parseDouble(y));
@@ -188,7 +138,7 @@ public class CommandUtils {
 		return arrival;
 	}
 
-	public static double getCoordinate(String c) {
+	public static double getCoordinate(final @NotNull String c) {
 		// c is like ^3 or ~-1.2 or 489.1
 		if (Character.isDigit(c.charAt(0))) {
 			return Double.parseDouble(c);
@@ -197,7 +147,93 @@ public class CommandUtils {
 		}
 	}
 
-	private static boolean isDouble(String str) {
+	private static boolean isDouble(final @NotNull String str) {
 		return IS_DECIMAL.matcher(str).matches();
 	}
+
+  public static boolean executeIgnorePerms(final @NotNull CommandSender sender, final @NotNull String label, final @NotNull String[] args) {
+    final PluginCommand command = Bukkit.getPluginCommand(label);
+    if (command != null) {
+
+      if (!command.getPlugin().isEnabled()) {
+        throw new CommandException(
+          "Cannot execute command '" + label + "' in plugin " +
+            command.getPlugin().getDescription().getFullName() + " - plugin is disabled."
+        );
+      }
+
+      CommandExecutor exec = command.getExecutor();
+      if (exec == null && command.getPlugin() instanceof CommandExecutor ce) {
+        exec = ce;
+      }
+      if (exec == null) {
+        // Kein Executor vorhanden → verhalte dich wie Bukkit: false zurückgeben (Usage anzeigen)
+        sendUsageIfAny(command, sender, label);
+        return false;
+      }
+
+      final boolean success;
+      try {
+        success = exec.onCommand(sender, command, label, args);
+      } catch (Throwable ex) {
+        throw new CommandException(
+          "Unhandled exception executing command '" + label + "' in plugin " +
+            command.getPlugin().getDescription().getFullName(), ex
+        );
+      }
+
+      if (!success) {
+        sendUsageIfAny(command, sender, label);
+      }
+      return success;
+    } else {
+      net.minecraft.server.MinecraftServer nms =
+        ((org.bukkit.craftbukkit.CraftServer) org.bukkit.Bukkit.getServer()).getServer();
+
+      CommandDispatcher<CommandSourceStack> dispatcher = nms.getCommands().getDispatcher();
+
+      net.minecraft.commands.CommandSourceStack src = (sender instanceof org.bukkit.entity.Player p)
+        ? ((org.bukkit.craftbukkit.entity.CraftPlayer) p).getHandle().createCommandSourceStack().withPermission(4)
+        : nms.createCommandSourceStack().withPermission(4);
+
+      String line = (args == null || args.length == 0) ? label : label + " " + String.join(" ", args);
+      if (line.startsWith("/")) line = line.substring(1); // dispatcher erwartet ohne Slash
+
+      int result = 0;
+      try {
+        result = dispatcher.execute(line, src);
+      } catch (CommandSyntaxException e) {
+        throw new RuntimeException(e);
+      }
+      boolean ok = result > 0;
+    }
+    return false;
+  }
+
+  private static void sendUsageIfAny(final @NotNull PluginCommand command, final @NotNull CommandSender sender, final @NotNull String label) {
+    String usage = command.getUsage();
+    if (!usage.isEmpty()) {
+      for (String line : usage.replace("<command>", label).split("\n")) {
+        sender.sendMessage(line);
+      }
+    }
+  }
+
+  public static Location getLocalCoord(final double x, final double y, final double z, final @NotNull CommandContext<io.papermc.paper.command.brigadier.CommandSourceStack> context) {
+    Location base = context.getSource().getLocation();
+    return getLocalCoord(x, y, z, base);
+  }
+
+  public static Location getLocalCoord(final double x, final double y, final double z, final @NotNull Location base) {
+    final Vector forward = base.getDirection().normalize();
+    final Vector worldUp = new Vector(0, 1, 0);
+    final Vector left = worldUp.clone().crossProduct(forward).normalize();
+    final Vector up = forward.clone().crossProduct(left).normalize();
+    final Vector offset = left.multiply(x).add(up.multiply(y)).add(forward.multiply(z));
+
+    final Location out = base.clone().add(offset);
+    out.setYaw(base.getYaw());
+    out.setPitch(base.getPitch());
+    return out;
+  }
 }
