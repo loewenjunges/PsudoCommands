@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "me.zombie_striker.psudocommands"
-version = "1.0.40-SNAPSHOT"
+version = "1.0.41-SNAPSHOT"
 description = "Allows plugin commands to accept base-minecraft selectors"
 java {
   toolchain.languageVersion = JavaLanguageVersion.of(21)
